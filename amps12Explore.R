@@ -24,11 +24,31 @@ media_vehicles_12 <- readRDS("media_vehicles_12.rds")
 
 demographics_12 <- readRDS("demographics_12.rds")
 
-#setting types for demographics:
+#reducing levels of categorical variables and setting factor types for demographics:
+
+# age:
+demographics_12$age <- ifelse(demographics_12$age %in% c(1,2), 1, demographics_12$age)
+demographics_12$age <- ifelse(demographics_12$age %in% c(3,4), 2, demographics_12$age)
+demographics_12$age <- ifelse(demographics_12$age %in% c(5,6), 3, demographics_12$age)
+demographics_12$age <- ifelse(demographics_12$age %in% c(7,8), 4, demographics_12$age)
 demographics_12$age <- factor(demographics_12$age, ordered = TRUE)
+
+# sex:
 demographics_12$sex <- factor(demographics_12$sex, ordered = FALSE)
+
+#edu:
+demographics_12$edu <- ifelse(demographics_12$edu %in% c(1,2,3,4), 1, demographics_12$edu)
+demographics_12$edu <- ifelse(demographics_12$edu %in% c(5), 2, demographics_12$edu)
+demographics_12$edu <- ifelse(demographics_12$edu %in% c(6,7,8), 3, demographics_12$edu)
 demographics_12$edu <- factor(demographics_12$edu, ordered = TRUE)
+
+#hh_inc
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(1,2,3,4), 1, demographics_12$hh_inc)
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(5,6), 2, demographics_12$hh_inc)
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(7), 3, demographics_12$hh_inc)
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(8), 4, demographics_12$hh_inc)
 demographics_12$hh_inc <- factor(demographics_12$hh_inc, ordered = TRUE)
+
 demographics_12$race <- factor(demographics_12$race, ordered = FALSE)
 demographics_12$province <- factor(demographics_12$province, ordered = FALSE)
 demographics_12$metro <- factor(demographics_12$metro, ordered = FALSE)
@@ -36,7 +56,15 @@ demographics_12$lang <- factor(demographics_12$lang, ordered = FALSE)
 demographics_12$lifestages <- factor(demographics_12$lifestages, ordered = FALSE)
 demographics_12$mar_status <- factor(demographics_12$mar_status, ordered = FALSE)
 demographics_12$pers_inc <- factor(demographics_12$pers_inc, ordered = TRUE)
+
+# lsm
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(1,2), 1, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(3,4), 2, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(5,6), 3, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(7,8), 4, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(9,10), 5, demographics_12$lsm)
 demographics_12$lsm <- factor(demographics_12$lsm, ordered = FALSE)
+
 demographics_12$lifestyle <- factor(demographics_12$lifestyle, ordered = FALSE)
 demographics_12$attitudes <- factor(demographics_12$attitudes, ordered = FALSE)
 
@@ -147,7 +175,6 @@ plot(som_sub, type = "property", property = as.data.frame(som_sub$codes)[,5], ma
 par(mfrow = c(1,1))
 plot(som_sub, type = "mapping", bgcol = sub12$cluster ) # not very good organising??
 
-
 # Try pca to get sense of relative use of media type... not very helpful since in most cases require many components to reflect variation in the data.
 
 mags_pca <- princomp(scale(magazines_engagement_12))
@@ -171,13 +198,6 @@ test$cluster
 set12$cluster
 cor(test$cluster, as.numeric(set12$cluster))
 
-
-
-
-
-
-
-
 # consider for some predictions:
 # create training and test sets:
 
@@ -200,6 +220,7 @@ pred_forest12_type <- predict(forest12_type, newdata = testing)
 confusionMatrix(pred_forest12_type, testing$cluster) 
 
 # with lda. Although given accuracy of forest,  no real need.
+set.seed(56)
 lda12 <- lda(cluster ~ newspapers
              + tv
              + radio
@@ -230,6 +251,7 @@ pred_forest12_demogr <- predict(forest12_demogr, newdata = testing)
 confusionMatrix(pred_forest12_demogr, testing$cluster)
 
 # with lda
+set.seed(56)
 lda12_demogr <- lda(cluster ~ age
                     + sex
                     + edu
@@ -244,14 +266,7 @@ lda12_demogr <- lda(cluster ~ age
                     data = training)
 
 pred_lda12_demogr <- predict(lda12_demogr, newdata = testing)
-confusionMatrix(pred_lda12_demogr$class, testing$cluster) # 
-
-test <- lm(as.numeric(cluster) ~ newspapers # could come back to this later...
-           + tv
-           + radio
-           + magazines
-           + internet,
-           data = training)
+confusionMatrix(pred_lda12_demogr$class, testing$cluster)
 
 ##  some qualitative consideration of the four types:
 
@@ -284,15 +299,15 @@ dev.off()
 jpeg('typeDemogPlots1.jpeg', quality = 100, type = "cairo")
 par(mfrow = c(2,2))
 plot(set12$cluster ~ factor(set12$race,labels = c("black", "coloured", "indian", "white")), col = c(2,3,4,5,6), main = "race", xlab = "", ylab = "")
-plot(set12$cluster ~ factor(set12$edu, labels = c("no school", "some primary", "primary", "some high", "matric", "other tert", "technikon", "university")), col = c(2,3,4,5,6), main = "education", xlab = "", ylab = "")
-plot(set12$cluster ~ factor(set12$age, labels = c("15-19","20-24","25-34","35-44", "45-49", "50-54","55-64", "+65")), col = c(2,3,4,5,6), main = "age", xlab = "", ylab = "")
-plot(set12$cluster ~ set12$lsm, col = c(2,3,4,5,6), main = "LSM", xlab = "", ylab = "")
+plot(set12$cluster ~ factor(set12$edu, labels = c("<matric", "matric",">matric" )), col = c(2,3,4,5,6), main = "education", xlab = "", ylab = "")
+plot(set12$cluster ~ factor(set12$age, labels = c("15-24","25-44", "45-54","55+")), col = c(2,3,4,5,6), main = "age", xlab = "", ylab = "")
+plot(set12$cluster ~ set12$lsm, col = c(2,3,4,5,6), main = "Aggregated LSM", xlab = "", ylab = "")
 dev.off()
 
 jpeg('typeDemogPlots2.jpeg', quality = 100, type = "cairo")
 par(mfrow = c(2,2))
 plot(set12$cluster ~ factor(set12$sex, labels = c("male", "female")), col = c(2,3,4,5,6), main = "sex", xlab = "", ylab = "")
-plot(set12$cluster ~ set12$hh_inc, col = c(2,3,4,5,6), main = "hh_inc", xlab = "", ylab = "")
+plot(set12$cluster ~ factor(set12$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(2,3,4,5,6), main = "hh_inc", xlab = "", ylab = "")
 plot(set12$cluster ~ set12$lifestages, col = c(2,3,4,5,6), main = "lifestages", xlab = "", ylab = "")
 plot(set12$cluster ~ set12$lifestyle, col = c(2,3,4,5,6), main = "lifestyle", xlab = "", ylab = "")
 dev.off()
@@ -316,6 +331,17 @@ for(i in 1:ncol(set12_CT)) {
 
 set12_CT <- set12_CT[,which(tempVec > 0.1*nrow(set12_CT))]
 
+table(set12_CT$lang)
+# also want to consider only three main languages in Cape Town (English, Afrikaans, Xhosa)
+# ie Same: 1 = Afrikaans; 2 = English
+#  Change 4 to 3 = Xhosa.
+
+set12_CT$lang <- ifelse(set12_CT$lang == 3, 12, set12_CT$lang)
+set12_CT$lang <- ifelse(set12_CT$lang == 4, 3, set12_CT$lang)
+set12_CT$lang <- ifelse(!set12_CT$lang %in% c(1,2,3), 4, set12_CT$lang)
+set12_CT$lang <- factor(set12_CT$lang)
+
+
 # scale the media vehicle columns (note, exclude the clusters for type columns)
 set12_CT[,22:59] <- scale(set12_CT[,22:59])
 
@@ -329,47 +355,31 @@ dev.off()
 
 # considered kmeans again, but not as useful .... :
 
-# factor analysis on six factors for cape town
+# factor analysis on seven factors for cape town
 fa12_CT <- factanal(set12_CT[,22:59], factors = 7, scores = "regression")
 fa12_CT # 35% variance explained
 
-# consider maximum scores and identify vehicle_categories (v_cats):
-factor_ct <- vector()
+# to determine categories, used kmeans: consider maximum scores and identify vehicle_categories (v_cats):
+
+
+kmeans12_factors <- kmeans(fa12_CT$scores, centers = 7)
+
+# when I used max
+factor_ct_max <- vector()
 for(i in 1: nrow(fa12_CT$scores)){
-        factor_ct[i] <- which.max(fa12_CT$scores[i,])
+        factor_ct_max[i] <- which.max(fa12_CT$scores[i,])
 }
 
 # add to datasets as factors
 set12_CT <- set12_CT %>%
-        mutate(factor_ct = factor_ct)
+        mutate(factor_ct = kmeans12_factors$cluster)  %>%
+        mutate(factor_ct_max = factor_ct_max)
 
 set12_CT$factor_ct <- factor(set12_CT$factor_ct)
 
 
 saveRDS(set12_CT, "set12_CT.rds")
 set12_CT <- readRDS("set12_CT.rds")
-
-# try consider tree for explanatory reasons:
-control3 <- rpart.control(maxdepth = 4, cp = 0.0001)
-tree12_CT <- rpart(factor_ct ~ age + 
-                           sex + 
-                           edu + 
-                           hh_inc + 
-                           race + 
-                           lang +
-                           lifestages + 
-                           mar_status +
-                           # pers_inc +
-                           lsm +
-                           lifestyle +
-                           attitudes,
-                           # cluster,
-                   control = control3,
-                   data = set12_CT)
-
-plot(tree12_CT)
-text(tree12_CT, pretty = 0)
-rpart.plot(tree12_CT, type = 4, extra = 1)
 
 # some qualitative consideration of the seven factors :
 
@@ -441,6 +451,31 @@ write.table(data.frame(vehicle = six[,1], loading = round(six[,7],2)), file = "s
 seven <- loadings_CT %>% arrange(desc(Factor7)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
 write.table(data.frame(vehicle = seven[,1], loading = round(seven[,8],2)), file = "seven.csv")
 
+
+
+# try consider tree for explanatory reasons:
+control3 <- rpart.control(maxdepth = 4, cp = 0.0001)
+tree12_CT <- rpart(factor_ct ~ age + 
+                           sex + 
+                           edu + 
+                           hh_inc + 
+                           race + 
+                           lang +
+                           lifestages + 
+                           mar_status +
+                           # pers_inc +
+                           lsm +
+                           lifestyle +
+                           attitudes,
+                           # cluster,
+                   control = control3,
+                   data = set12_CT)
+
+plot(tree12_CT)
+text(tree12_CT, pretty = 0)
+rpart.plot(tree12_CT, type = 4, extra = 1)
+
+
 # consider prediction to get sense of accuracy of factor classifications
 forest12_CT <- randomForest(factor_ct ~ age + 
                                     sex + 
@@ -471,84 +506,77 @@ confusionMatrix(pred12_CT, set12_CT$factor_ct) # for now just training set predi
 # first try single regression:
 
 # add scaled (not sure about scaling here. Double check) factor scores to the dataset:
-factor_scores <- as.data.frame(scale(fa12_CT$scores))
+factor_scores <- as.data.frame(fa12_CT$scores)
 set12_CT_factors <- cbind(set12_CT, factor_scores)
 
-# creating numeric variables for the ordered factors:
-set12_CT_factors$age <- as.numeric(set12_CT_factors$age)
-set12_CT_factors$edu <- as.numeric(set12_CT_factors$edu)
-set12_CT_factors$hh_inc <- as.numeric(set12_CT_factors$hh_inc)
-set12_CT_factors$lsm <- as.numeric(set12_CT_factors$lsm)
+# creating scaled numeric variables for the ordered factors:
+set12_CT_factors$age <- scale(as.numeric(set12_CT_factors$age))
+set12_CT_factors$edu <- scale(as.numeric(set12_CT_factors$edu))
+set12_CT_factors$hh_inc <- scale(as.numeric(set12_CT_factors$hh_inc))
+set12_CT_factors$lsm <- scale(as.numeric(set12_CT_factors$lsm))
+
+# separate into test and training sets for this round
+set.seed(56)
+ind_lm <- createDataPartition(set12_CT_factors$qn, p = 0.7, list = FALSE)
+training_lm <- set12_CT_factors[ind_lm,]
+testing_lm <- set12_CT_factors[-ind_lm,]
 
 # regression on each factor score to ascertain most important predictors
-lm1 <- lm(Factor1 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
+lm1 <- lm(Factor1 ~ age + sex + edu + hh_inc + race  + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+lm2 <- lm(Factor2 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+lm3 <- lm(Factor3 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+lm4 <- lm(Factor4 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+lm5 <- lm(Factor5 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+lm6 <- lm(Factor6 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+lm7 <- lm(Factor7 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = training_lm)
+
 summary(lm1)
-
-lm2 <- lm(Factor2 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
-summary(lm2)
-
-lm3 <- lm(Factor3 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
-summary(lm3)
-
-lm4 <- lm(Factor4 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
-summary(lm4)
-
-lm5 <- lm(Factor5 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
-summary(lm5)
-
-lm6 <- lm(Factor6 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
-summary(lm6)
-
-lm7 <- lm(Factor7 ~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster, data = set12_CT_factors)
-summary(lm7)
+sqrt(mean((predict(lm7, newdata = testing_lm) - testing_lm$Factor7)^2))
 
 
-mean((predict(lm6) - set12_CT_factors$Factor6)^2) # generally quite good.
-
-# Some canonical trials
+# Some canonical trials on using selected predictor (demographic) variables
 # 
-# creating model matrix for dummy variables of the unordered factors:
-set12_CT_factors_dummies <- as.data.frame(model.matrix(~ age + sex + edu + hh_inc + race + lang + lifestages + mar_status + lsm + lifestyle + attitudes + cluster + Factor1 + Factor2 + Factor3 + Factor4 + Factor5 + Factor6 + Factor7, data = set12_CT_factors)[,-1])
+# creating model matrix for dummy variables of selected unordered factors:
+set12_CT_factors_dummies <- as.data.frame(model.matrix(~ age + sex + edu + hh_inc + race + lang + lsm + cluster + Factor1 + Factor2 + Factor3 + Factor4 + Factor5 + Factor6 + Factor7, data = set12_CT_factors)[,-1])
 
 # get sense of correlations of the factors and the demographic variables
 cor(set12_CT_factors[,c("Factor1", "Factor2", "Factor3", "Factor4", "Factor5", "Factor6", "Factor7")])
 cor(set12_CT_factors_dummies)
 
-cannonical_cor <- cancor(x = set12_CT_factors_dummies[,c(1:51)], y = set12_CT_factors_dummies[,c(52:58)])
+cannonical_cor <- cancor(x = set12_CT_factors_dummies[,1:15], y = set12_CT_factors_dummies[,16:22])
 
 cannonical_cor
 
 # just making sure I understand what's going on "under the hood"...
-v1 <- vector()
-for(i in 1:47) {
+v_1 <- rep(0, 1960)
+for(i in 1:15) {
         vector_v1 <- cannonical_cor$xcoef[i,1] * (set12_CT_factors_dummies[,i] - mean(set12_CT_factors_dummies[,i]))
         v_1 <- v_1 + vector_v1
 }
 
-v_1 <- sum(vector_v1)
-        
-v_1 <- cannonical_cor$xcoef[1,1] * (set12_CT_factors_test[,1] - mean(set12_CT_factors_test[,1])) +
-        cannonical_cor$xcoef[2,1] * (set12_CT_factors_test[,2] - mean(set12_CT_factors_test[,2])) +
-        cannonical_cor$xcoef[3,1] * (set12_CT_factors_test[,3] - mean(set12_CT_factors_test[,3])) +
-        cannonical_cor$xcoef[4,1] * (set12_CT_factors_test[,4] - mean(set12_CT_factors_test[,4])) +
-        cannonical_cor$xcoef[5,1] * (set12_CT_factors_test[,5] - mean(set12_CT_factors_test[,5])) +
-        cannonical_cor$xcoef[6,1] * (set12_CT_factors_test[,6] - mean(set12_CT_factors_test[,6])) +
-        cannonical_cor$xcoef[7,1] * (set12_CT_factors_test[,7] - mean(set12_CT_factors_test[,7]))
 
-u_1 <- cannonical_cor$ycoef[1,1] * set12_CT_factors_dummies[,52] + # since means = 0, no need to subtract them
-        cannonical_cor$ycoef[2,1] * set12_CT_factors_dummies[,53] +
-        cannonical_cor$ycoef[3,1] * set12_CT_factors_dummies[,54] +
-        cannonical_cor$ycoef[4,1] * set12_CT_factors_dummies[,55] +
-        cannonical_cor$ycoef[5,1] * set12_CT_factors_dummies[,56] +
-        cannonical_cor$ycoef[6,1] * set12_CT_factors_dummies[,57] +
-        cannonical_cor$ycoef[7,1] * set12_CT_factors_dummies[,58]
+# v_1 <- cannonical_cor$xcoef[1,1] * (set12_CT_factors_test[,1] - mean(set12_CT_factors_test[,1])) +
+#         cannonical_cor$xcoef[2,1] * (set12_CT_factors_test[,2] - mean(set12_CT_factors_test[,2])) +
+#         cannonical_cor$xcoef[3,1] * (set12_CT_factors_test[,3] - mean(set12_CT_factors_test[,3])) +
+#         cannonical_cor$xcoef[4,1] * (set12_CT_factors_test[,4] - mean(set12_CT_factors_test[,4])) +
+#         cannonical_cor$xcoef[5,1] * (set12_CT_factors_test[,5] - mean(set12_CT_factors_test[,5])) +
+#         cannonical_cor$xcoef[6,1] * (set12_CT_factors_test[,6] - mean(set12_CT_factors_test[,6])) +
+#         cannonical_cor$xcoef[7,1] * (set12_CT_factors_test[,7] - mean(set12_CT_factors_test[,7]))
+
+u_1 <- cannonical_cor$ycoef[1,1] * set12_CT_factors_dummies[,16] + # since means = 0, no need to subtract them
+        cannonical_cor$ycoef[2,1] * set12_CT_factors_dummies[,17] +
+        cannonical_cor$ycoef[3,1] * set12_CT_factors_dummies[,18] +
+        cannonical_cor$ycoef[4,1] * set12_CT_factors_dummies[,19] +
+        cannonical_cor$ycoef[5,1] * set12_CT_factors_dummies[,20] +
+        cannonical_cor$ycoef[6,1] * set12_CT_factors_dummies[,21] +
+        cannonical_cor$ycoef[7,1] * set12_CT_factors_dummies[,22]
 
 cor(v_1,u_1) # matches...coool
 
 coefx1_standardised <- cannonical_cor$xcoef[,1] * apply(set12_CT_factors_test, 2, sd)
 coefy1_standardised <- cannonical_cor$ycoef[,1] * apply(outcome, 2, sd)
 
-plot(v_1, u_1) # very interesting cluster....
+plot(v_1, u_1) # good elliptical pattern... so can have some confidence...
 
 # try to understand what causes the split clusters:
 try_ind <- v_1 > 0.01
@@ -557,6 +585,7 @@ bigs <- set12_CT[try_ind,]
 smalls <- set12_CT[!try_ind,]
 
 table(bigs$race) # seems its all about race..
+table(smalls$race)
 
 v_2 <- cannonical_cor$xcoef[1,2] * (set12_CT_factors_test[,1] - mean(set12_CT_factors_test[,1])) +
         cannonical_cor$xcoef[2,2] * (set12_CT_factors_test[,2] - mean(set12_CT_factors_test[,2])) +
