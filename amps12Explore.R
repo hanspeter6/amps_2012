@@ -373,7 +373,8 @@ png('kmeansCTPlot2012.png')
 plot(3:20, wss_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
 dev.off()
 
-kmeans12_CT <- kmeans(fa12_CT$scores, centers = 9)
+set.seed(56)
+kmeans12_CT <- kmeans(fa12_CT$scores, centers = 8, nstart = 5, iter.max = 30)
 table(kmeans12_CT$cluster) # reasonable distribution
 
 # checking centers 
@@ -390,31 +391,46 @@ set12_CT <- readRDS("set12_CT.rds")
 ## want to profile each media group by media type and demographics
 
 # consider media-type engagement values and media groups
+jpeg("mediaTypeVsGroup")
 par(mfrow = c(2,3))
-plot(set12_CT$radio ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8,17), main = "radio", xlab = "group", ylab = '')
-plot(set12_CT$tv ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
-plot(set12_CT$newspapers ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
-plot(set12_CT$magazines ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
-plot(set12_CT$internet ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
+plot(set12_CT$radio ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
+plot(set12_CT$tv ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
+plot(set12_CT$newspapers ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
+plot(set12_CT$magazines ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
+plot(set12_CT$internet ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
+dev.off()
 
 # consider demographics and media groups
+jpeg("groupVsDemog1")
 par(mfrow = c(2,2))
-plot(set12_CT$group ~ set12_CT$age, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
-plot(set12_CT$group ~ set12_CT$sex, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
-plot(set12_CT$group ~ set12_CT$edu, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
-plot(set12_CT$group ~ set12_CT$hh_inc, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
+plot(set12_CT$group ~ factor(set12_CT$age, labels = c("15-24","25-44", "45-54","55+")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
+plot(set12_CT$group ~ factor(set12_CT$sex, labels = c("male", "female")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
+plot(set12_CT$group ~ factor(set12_CT$edu, labels = c("<matric", "matric",">matric" )), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
+plot(set12_CT$group ~ factor(set12_CT$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
+dev.off()
 
+jpeg("groupVsDemog2")
 par(mfrow = c(2,2))
-plot(set12_CT$group ~ set12_CT$race, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
-plot(set12_CT$group ~ set12_CT$lang, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
-plot(set12_CT$group ~ set12_CT$lifestages, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
-plot(set12_CT$group ~ set12_CT$mar_status, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+plot(set12_CT$group ~ factor(set12_CT$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_CT$group ~ factor(set12_CT$lang, labels = c("Afrikaans", "English", "Xhosa", "Other")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_CT$group ~ factor(set12_CT$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
+plot(set12_CT$group ~ set12_CT$cluster, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
+dev.off()
 
+jpeg("groupVsDemog3")
 par(mfrow = c(2,2))
-plot(set12_CT$group ~ set12_CT$age, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
-plot(set12_CT$group ~ set12_CT$sex, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
-plot(set12_CT$group ~ set12_CT$edu, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
-plot(set12_CT$group ~ set12_CT$cluster, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'media_type cluster')
+plot(set12_CT$group ~ set12_CT$lifestyle, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
+plot(set12_CT$group ~ set12_CT$attitudes, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
+plot(set12_CT$group ~ set12_CT$lifestages, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_CT$group ~ set12_CT$mar_status, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+dev.off()
+
+## want to interpret media groups according to kmeans centroid coefficients:
+
+# look at them:
+kmeans12_CT$centers
+write.table(data.frame(round(kmeans12_CT$centers, 4)), file = "centroids_12.csv")
+
 
 ## want to consider media vehicle loadings of the seven factors:
 
@@ -451,10 +467,7 @@ write.table(data.frame(vehicle = six[,1], loading = round(six[,7],2)), file = "s
 seven <- loadings_CT %>% arrange(desc(Factor7)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
 write.table(data.frame(vehicle = seven[,1], loading = round(seven[,8],2)), file = "seven.csv")
 
-## want to interpret media groups according to kmeans centroid coefficients:
 
-# look at them:
-kmeans12_CT$centers
 
 
 
