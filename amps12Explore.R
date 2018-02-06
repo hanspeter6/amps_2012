@@ -341,83 +341,83 @@ set12_CT$lang <- ifelse(set12_CT$lang == 4, 3, set12_CT$lang)
 set12_CT$lang <- ifelse(!set12_CT$lang %in% c(1,2,3), 4, set12_CT$lang)
 set12_CT$lang <- factor(set12_CT$lang)
 
-
 # scale the media vehicle columns (note, exclude the clusters for type columns)
 set12_CT[,22:59] <- scale(set12_CT[,22:59])
 
 # first pca to get sense of latent structure dimensions
 pca12_CT <- princomp(set12_CT[,22:59])
+summary(pca12_CT)
 
 jpeg("pca_screeplot_CT.jpeg")
 par(mfrow = c(1,1))
 screeplot(pca12_CT, type = "lines", npcs = 15) # looks like elbow at 7. Strange drop for second PC??
 dev.off()
 
-# considered kmeans again, but not as useful .... :
-
 # factor analysis on seven factors for cape town
 fa12_CT <- factanal(set12_CT[,22:59], factors = 7, scores = "regression")
 fa12_CT # 35% variance explained
 
-# to determine categories, used kmeans: consider maximum scores and identify vehicle_categories (v_cats):
+## kmeans to determine categories based on proximity to all seven factor scores 
 
-
-kmeans12_factors <- kmeans(fa12_CT$scores, centers = 7)
-
-# when I used max
-factor_ct_max <- vector()
-for(i in 1: nrow(fa12_CT$scores)){
-        factor_ct_max[i] <- which.max(fa12_CT$scores[i,])
+# first determine sensible number of centers:
+wss_ct <- vector()
+for(k in 3:20) {
+        temp <- kmeans(fa12_CT$scores,
+                       centers = k,
+                       nstart = 3,
+                       iter.max = 20)
+        wss_ct <- append(wss_ct,temp$tot.withinss)
 }
 
-# add to datasets as factors
+png('kmeansCTPlot2012.png')
+plot(3:20, wss_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
+dev.off()
+
+kmeans12_CT <- kmeans(fa12_CT$scores, centers = 9)
+table(kmeans12_CT$cluster) # reasonable distribution
+
+# checking centers 
+kmeans12_CT$centers
+
+# add kmeans groups as factors to dataset
 set12_CT <- set12_CT %>%
-        mutate(factor_ct = kmeans12_factors$cluster)  %>%
-        mutate(factor_ct_max = factor_ct_max)
+        mutate(group = factor(kmeans12_CT$cluster))
 
-set12_CT$factor_ct <- factor(set12_CT$factor_ct)
-
-
+# save the cape town set:
 saveRDS(set12_CT, "set12_CT.rds")
 set12_CT <- readRDS("set12_CT.rds")
 
-# some qualitative consideration of the seven factors :
+## want to profile each media group by media type and demographics
 
-jpeg('vehicleBoxPlots.jpeg', quality = 100, type = "cairo")
+# consider media-type engagement values and media groups
 par(mfrow = c(2,3))
-plot(set12_CT$radio ~ set12_CT$factor_ct, col = c(2,3,4,5,6,7,8), main = "radio", xlab = "factor", ylab = '')
-plot(set12_CT$tv ~ set12_CT$factor_ct, col = c(2,3,4,5,6,7,8), main = "tv", xlab = "factor", ylab = '')
-plot(set12_CT$newspapers ~ set12_CT$factor_ct, col = c(2,3,4,5,6,7,8), main = "newspapers", xlab = "factor", ylab = '')
-plot(set12_CT$magazines ~ set12_CT$factor_ct, col = c(2,3,4,5,6,7,8), main = "magazines", xlab = "factor", ylab = '')
-plot(set12_CT$internet ~ set12_CT$factor_ct, col = c(2,3,4,5,6,7,8), main = "internet", xlab = "factor", ylab = '')
-dev.off()
+plot(set12_CT$radio ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8,17), main = "radio", xlab = "group", ylab = '')
+plot(set12_CT$tv ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
+plot(set12_CT$newspapers ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
+plot(set12_CT$magazines ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
+plot(set12_CT$internet ~ set12_CT$group, col = c(2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
 
-jpeg('vehicleDemog1.jpeg', quality = 100, type = "cairo")
+# consider demographics and media groups
 par(mfrow = c(2,2))
-plot(set12_CT$factor_ct ~ set12_CT$age, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'age')
-plot(set12_CT$factor_ct ~ set12_CT$sex, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'sex')
-plot(set12_CT$factor_ct ~ set12_CT$edu, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'education')
-plot(set12_CT$factor_ct ~ set12_CT$hh_inc, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'hh_income')
-dev.off()
+plot(set12_CT$group ~ set12_CT$age, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
+plot(set12_CT$group ~ set12_CT$sex, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
+plot(set12_CT$group ~ set12_CT$edu, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
+plot(set12_CT$group ~ set12_CT$hh_inc, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
 
-jpeg('vehicleDemog2.jpeg', quality = 100, type = "cairo")
 par(mfrow = c(2,2))
-plot(set12_CT$factor_ct ~ set12_CT$lsm, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'LSM')
-plot(set12_CT$factor_ct ~ set12_CT$lifestyle, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'lifestyle')
-plot(set12_CT$factor_ct ~ set12_CT$attitudes, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'attitudes')
-plot(set12_CT$factor_ct ~ set12_CT$cluster, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'cluster')
-dev.off()
+plot(set12_CT$group ~ set12_CT$race, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_CT$group ~ set12_CT$lang, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_CT$group ~ set12_CT$lifestages, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_CT$group ~ set12_CT$mar_status, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
 
-jpeg('vehicleDemog3.jpeg', quality = 100, type = "cairo")
 par(mfrow = c(2,2))
-plot(set12_CT$factor_ct ~ set12_CT$race, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'race')
-plot(set12_CT$factor_ct ~ set12_CT$lang, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'language')
-plot(set12_CT$factor_ct ~ set12_CT$lifestages, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'lifestages')
-plot(set12_CT$factor_ct ~ set12_CT$mar_status, col = c(2,3,4,5,6,7,8), ylab = 'factors', xlab = 'marital status')
-dev.off()
-par(mfrow = c(1,1))
+plot(set12_CT$group ~ set12_CT$age, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
+plot(set12_CT$group ~ set12_CT$sex, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
+plot(set12_CT$group ~ set12_CT$edu, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
+plot(set12_CT$group ~ set12_CT$cluster, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'media_type cluster')
 
-# understanding the factors:
+## want to consider media vehicle loadings of the seven factors:
+
 # first create loadings dataframe
 loadings_CT <- fa12_CT$loadings
 vehicles = rownames(loadings_CT)
@@ -450,6 +450,13 @@ write.table(data.frame(vehicle = six[,1], loading = round(six[,7],2)), file = "s
 # factor 7
 seven <- loadings_CT %>% arrange(desc(Factor7)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
 write.table(data.frame(vehicle = seven[,1], loading = round(seven[,8],2)), file = "seven.csv")
+
+## want to interpret media groups according to kmeans centroid coefficients:
+
+# look at them:
+kmeans12_CT$centers
+
+
 
 
 
