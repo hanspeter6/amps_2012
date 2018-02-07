@@ -301,7 +301,7 @@ par(mfrow = c(2,2))
 plot(set12$cluster ~ factor(set12$race,labels = c("black", "coloured", "indian", "white")), col = c(2,3,4,5,6), main = "race", xlab = "", ylab = "")
 plot(set12$cluster ~ factor(set12$edu, labels = c("<matric", "matric",">matric" )), col = c(2,3,4,5,6), main = "education", xlab = "", ylab = "")
 plot(set12$cluster ~ factor(set12$age, labels = c("15-24","25-44", "45-54","55+")), col = c(2,3,4,5,6), main = "age", xlab = "", ylab = "")
-plot(set12$cluster ~ set12$lsm, col = c(2,3,4,5,6), main = "Aggregated LSM", xlab = "", ylab = "")
+plot(set12$cluster ~ factor(set12$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(2,3,4,5,6), main = "LSM", xlab = "", ylab = "")
 dev.off()
 
 jpeg('typeDemogPlots2.jpeg', quality = 100, type = "cairo")
@@ -323,7 +323,11 @@ dev.off()
 # isolate cape town
 set12_CT <- set12 %>% filter(metro == 1) # first did 1 and 2 but found marginal factor messes up...
 
+# isolate johannesburg
+set12_JHB <- set12 %>% filter(metro == 7)
+
 # actually want to consider only those variables with a reasonable number (consider 10%)
+# cap town
 tempVec <- vector()
 for(i in 1:ncol(set12_CT)) {
         tempVec[i] <- sum(set12_CT[,i] != 0, na.rm = TRUE)
@@ -331,8 +335,19 @@ for(i in 1:ncol(set12_CT)) {
 
 set12_CT <- set12_CT[,which(tempVec > 0.1*nrow(set12_CT))]
 
+# johannesburg
+tempVec_ct <- vector()
+for(i in 1:ncol(set12_JHB)) {
+        tempVec_ct[i] <- sum(set12_JHB[,i] != 0, na.rm = TRUE)
+}
+
+set12_JHB <- set12_JHB[,which(tempVec_ct > 0.1*nrow(set12_JHB))]
+
+# also want to consider only main languages in Cape Town (jhb seems more divided in language)
 table(set12_CT$lang)
-# also want to consider only three main languages in Cape Town (English, Afrikaans, Xhosa)
+table(set12_JHB$lang)
+
+# in Cape Town (English, Afrikaans, Xhosa)
 # ie Same: 1 = Afrikaans; 2 = English
 #  Change 4 to 3 = Xhosa.
 
@@ -343,8 +358,10 @@ set12_CT$lang <- factor(set12_CT$lang)
 
 # scale the media vehicle columns (note, exclude the clusters for type columns)
 set12_CT[,22:59] <- scale(set12_CT[,22:59])
+set12_JHB[,22:64] <- scale(set12_JHB[,22:64])
 
-# first pca to get sense of latent structure dimensions
+## first pca to get sense of latent structure dimensions
+## Cape Town
 pca12_CT <- princomp(set12_CT[,22:59])
 summary(pca12_CT)
 
@@ -353,86 +370,26 @@ par(mfrow = c(1,1))
 screeplot(pca12_CT, type = "lines", npcs = 15) # looks like elbow at 7. Strange drop for second PC??
 dev.off()
 
-# factor analysis on seven factors for cape town
+## Johannesburg
+pca12_JHB <- princomp(set12_JHB[,22:64])
+summary(pca12_JHB)
+
+jpeg("pca_screeplot_JHB.jpeg")
+par(mfrow = c(1,1))
+screeplot(pca12_JHB, type = "lines", npcs = 15) # looks like elbow at 6 or 8. will stick with 7 to be aligned with CT (is that right??)
+dev.off()
+
+# factor analysis on seven factors:
+# for cape town
 fa12_CT <- factanal(set12_CT[,22:59], factors = 7, scores = "regression")
 fa12_CT # 35% variance explained
 
-## kmeans to determine categories based on proximity to all seven factor scores 
-
-# first determine sensible number of centers:
-wss_ct <- vector()
-for(k in 3:20) {
-        temp <- kmeans(fa12_CT$scores,
-                       centers = k,
-                       nstart = 3,
-                       iter.max = 20)
-        wss_ct <- append(wss_ct,temp$tot.withinss)
-}
-
-png('kmeansCTPlot2012.png')
-plot(3:20, wss_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
-dev.off()
-
-set.seed(56)
-kmeans12_CT <- kmeans(fa12_CT$scores, centers = 8, nstart = 5, iter.max = 30)
-table(kmeans12_CT$cluster) # reasonable distribution
-
-# checking centers 
-kmeans12_CT$centers
-
-# add kmeans groups as factors to dataset
-set12_CT <- set12_CT %>%
-        mutate(group = factor(kmeans12_CT$cluster))
-
-# save the cape town set:
-saveRDS(set12_CT, "set12_CT.rds")
-set12_CT <- readRDS("set12_CT.rds")
-
-## want to profile each media group by media type and demographics
-
-# consider media-type engagement values and media groups
-jpeg("mediaTypeVsGroup")
-par(mfrow = c(2,3))
-plot(set12_CT$radio ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
-plot(set12_CT$tv ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
-plot(set12_CT$newspapers ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
-plot(set12_CT$magazines ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
-plot(set12_CT$internet ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
-dev.off()
-
-# consider demographics and media groups
-jpeg("groupVsDemog1")
-par(mfrow = c(2,2))
-plot(set12_CT$group ~ factor(set12_CT$age, labels = c("15-24","25-44", "45-54","55+")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
-plot(set12_CT$group ~ factor(set12_CT$sex, labels = c("male", "female")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
-plot(set12_CT$group ~ factor(set12_CT$edu, labels = c("<matric", "matric",">matric" )), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
-plot(set12_CT$group ~ factor(set12_CT$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
-dev.off()
-
-jpeg("groupVsDemog2")
-par(mfrow = c(2,2))
-plot(set12_CT$group ~ factor(set12_CT$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
-plot(set12_CT$group ~ factor(set12_CT$lang, labels = c("Afrikaans", "English", "Xhosa", "Other")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
-plot(set12_CT$group ~ factor(set12_CT$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
-plot(set12_CT$group ~ set12_CT$cluster, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
-dev.off()
-
-jpeg("groupVsDemog3")
-par(mfrow = c(2,2))
-plot(set12_CT$group ~ set12_CT$lifestyle, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
-plot(set12_CT$group ~ set12_CT$attitudes, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
-plot(set12_CT$group ~ set12_CT$lifestages, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
-plot(set12_CT$group ~ set12_CT$mar_status, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
-dev.off()
-
-## want to interpret media groups according to kmeans centroid coefficients:
-
-# look at them:
-kmeans12_CT$centers
-write.table(data.frame(round(kmeans12_CT$centers, 4)), file = "centroids_12.csv")
-
+# for johannesburg
+fa12_JHB <- factanal(set12_JHB[,22:64], factors = 7, scores = "regression")
+fa12_JHB # 32% variance explained
 
 ## want to consider media vehicle loadings of the seven factors:
+## cape town (note: want to try to ensure factor 1 for cape town is similar to factor 1 jhb, see below (will use Cape Town as basis))
 
 # first create loadings dataframe
 loadings_CT <- fa12_CT$loadings
@@ -467,6 +424,192 @@ write.table(data.frame(vehicle = six[,1], loading = round(six[,7],2)), file = "s
 seven <- loadings_CT %>% arrange(desc(Factor7)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
 write.table(data.frame(vehicle = seven[,1], loading = round(seven[,8],2)), file = "seven.csv")
 
+## for johannesburg
+
+# first create loadings dataframe for jhb
+loadings_JHB<- fa12_JHB$loadings
+vehicles_jhb = rownames(loadings_JHB)
+loadings_JHB <- data.frame(vehicles_jhb, loadings_JHB[,1:7])
+
+# factor 1 jhb
+one_jhb <- loadings_JHB %>% arrange(desc(Factor1)) %>% head(10) # ct Factor 3 ?
+
+# factor 2 jhb
+two_jhb <- loadings_JHB %>% arrange(desc(Factor2)) %>% head(10) # ct Factor 1 ?
+
+# factor 3 jhb
+three_jhb <- loadings_JHB %>% arrange(desc(Factor3)) %>% head(10) # ct Factor 4 ?
+
+# factor 4 jhb
+four_jhb <- loadings_JHB %>% arrange(desc(Factor4)) %>% head(10) # ct Factor 2 ?
+
+# factor 5 jhb
+five_jhb <- loadings_JHB %>% arrange(desc(Factor5)) %>% head(10) # ct Factor 3/7 ?
+
+# factor 6 jhb
+six_jhb <- loadings_JHB %>% arrange(desc(Factor6)) %>% head(10)  # ct Factor 6 ?
+
+# factor 7 jhb
+seven_jhb <- loadings_JHB %>% arrange(desc(Factor7)) %>% head(10) # ct Factor 4 ?
+
+## kmeans to determine categories based on proximity to all seven factor scores 
+
+# first determine sensible number of centers:
+# for cape town
+wss_ct <- vector()
+for(k in 3:20) {
+        temp <- kmeans(fa12_CT$scores,
+                       centers = k,
+                       nstart = 3,
+                       iter.max = 20)
+        wss_ct <- append(wss_ct,temp$tot.withinss)
+}
+
+png('kmeansCTPlot2012.png')
+plot(3:20, wss_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
+dev.off()
+
+# for johannesburg
+wss_jhb <- vector()
+for(k in 3:20) {
+        temp <- kmeans(fa12_JHB$scores,
+                       centers = k,
+                       nstart = 3,
+                       iter.max = 20)
+        wss_jhb <- append(wss_jhb,temp$tot.withinss)
+}
+
+png('kmeansJhbPlot2012.png')
+plot(3:20, wss_jhb, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
+dev.off()
+
+# will stick to eight centers in both cities
+# cape town
+set.seed(56)
+kmeans12_CT <- kmeans(fa12_CT$scores, centers = 8, nstart = 5, iter.max = 30)
+table(kmeans12_CT$cluster) # reasonable distribution
+
+# johannesburg
+set.seed(56)
+kmeans12_JHB <- kmeans(fa12_JHB$scores, centers = 8, nstart = 5, iter.max = 30)
+table(kmeans12_JHB$cluster) # reasonable distribution
+
+# checking centers 
+kmeans12_CT$centers
+kmeans12_JHB$centers
+
+## add kmeans groups as factors to dataset
+## cape town
+set12_CT <- set12_CT %>%
+        mutate(group = factor(kmeans12_CT$cluster))
+
+## johannesburg
+set12_JHB <- set12_JHB %>%
+        mutate(group = factor(kmeans12_JHB$cluster))
+
+## save
+## save the cape town set:
+saveRDS(set12_CT, "set12_CT.rds")
+set12_CT <- readRDS("set12_CT.rds")
+
+## save the johannesburg set:
+saveRDS(set12_JHB, "set12_JHB.rds")
+set12_JHB <- readRDS("set12_JHB.rds")
+
+## want to profile each media group by media type and demographics
+
+## cape town & jhb
+## 
+# consider media-type engagement values and media groups
+jpeg("mediaTypeVsGroup_12_CT")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_CT$radio ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
+plot(set12_CT$tv ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
+plot(set12_CT$newspapers ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
+plot(set12_CT$magazines ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+jpeg("mediaTypeVsGroup_12_JHB")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_JHB$radio ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
+plot(set12_JHB$tv ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
+plot(set12_JHB$newspapers ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
+plot(set12_JHB$magazines ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
+plot(set12_JHB$internet ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
+title("Johannesburg", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+## consider demographics and media groups
+
+#cape town
+jpeg("groupVsDemog1_12_CT")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_CT$group ~ factor(set12_CT$age, labels = c("15-24","25-44", "45-54","55+")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
+plot(set12_CT$group ~ factor(set12_CT$sex, labels = c("male", "female")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
+plot(set12_CT$group ~ factor(set12_CT$edu, labels = c("<matric", "matric",">matric" )), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
+plot(set12_CT$group ~ factor(set12_CT$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+# johannesburg
+jpeg("groupVsDemog1_12_JHB")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_JHB$group ~ factor(set12_JHB$age, labels = c("15-24","25-44", "45-54","55+")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
+plot(set12_JHB$group ~ factor(set12_JHB$sex, labels = c("male", "female")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
+plot(set12_JHB$group ~ factor(set12_JHB$edu, labels = c("<matric", "matric",">matric" )), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
+plot(set12_JHB$group ~ factor(set12_JHB$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
+title("Johannesburg", outer = TRUE, cex.main = 2.5)
+dev.off()
+# 
+# ##
+# cape town
+jpeg("groupVsDemog2_12_CT")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_CT$group ~ factor(set12_CT$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_CT$group ~ factor(set12_CT$lang, labels = c("Afrikaans", "English", "Xhosa", "Other")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_CT$group ~ factor(set12_CT$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
+plot(set12_CT$group ~ set12_CT$cluster, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+# johannesburg
+jpeg("groupVsDemog2_12_JHB")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_JHB$group ~ factor(set12_JHB$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_JHB$group ~ set12_JHB$lang, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_JHB$group ~ factor(set12_JHB$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
+plot(set12_JHB$group ~ set12_JHB$cluster, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
+title("Johannesburg", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+# cape town
+jpeg("groupVsDemog3_12_CT")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_CT$group ~ set12_CT$lifestyle, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
+plot(set12_CT$group ~ set12_CT$attitudes, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
+plot(set12_CT$group ~ set12_CT$lifestages, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_CT$group ~ set12_CT$mar_status, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+# johannesburg
+jpeg("groupVsDemog3_12_JHB")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_JHB$group ~ set12_JHB$lifestyle, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
+plot(set12_JHB$group ~ set12_JHB$attitudes, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
+plot(set12_JHB$group ~ set12_JHB$lifestages, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_JHB$group ~ set12_JHB$mar_status, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+title("Johannesburg", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+## want to interpret media groups according to kmeans centroid coefficients:
+
+# look at them:
+kmeans12_CT$centers
+write.table(data.frame(round(kmeans12_CT$centers, 4)), file = "centroids_12.csv")
+
+
 
 
 
@@ -496,8 +639,17 @@ text(tree12_CT, pretty = 0)
 rpart.plot(tree12_CT, type = 4, extra = 1)
 
 
+
+
+
 # consider prediction to get sense of accuracy of factor classifications
-forest12_CT <- randomForest(factor_ct ~ age + 
+
+# separate into test and training sets for this round
+set.seed(56)
+ind_rf <- createDataPartition(set12_CT$group, p = 0.7, list = FALSE)
+training_rf <- set12_CT[ind_rf,]
+testing_rf <- set12_CT[-ind_rf,]
+forest12_CT <- randomForest(group ~ age + 
                                     sex + 
                                     edu + 
                                     hh_inc +
@@ -514,13 +666,12 @@ forest12_CT <- randomForest(factor_ct ~ age +
                                     # radio +
                                     # tv +
                                     # internet,
-                            data = set12_CT)
+                            data = training_rf)
 
 
-pred12_CT <- predict(forest12_CT)
+pred12_CT <- predict(forest12_CT, newdata = testing_rf)
 
-
-confusionMatrix(pred12_CT, set12_CT$factor_ct) # for now just training set predictions...
+confusionMatrix(pred12_CT, testing_rf$group) # ~ 55 accuracy on test set.
 
 # try some other stuff: regression and canonical collerations...
 # first try single regression:
