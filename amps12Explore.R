@@ -367,7 +367,8 @@ summary(pca12_CT)
 
 jpeg("pca_screeplot_CT.jpeg")
 par(mfrow = c(1,1))
-screeplot(pca12_CT, type = "lines", npcs = 15) # looks like elbow at 7. Strange drop for second PC??
+screeplot(pca12_CT, type = "lines", npcs = 15, main = "Cape Town") # looks like elbow at 7. Strange drop for second PC??
+abline(v = 7, lty = 2)
 dev.off()
 
 ## Johannesburg
@@ -376,7 +377,8 @@ summary(pca12_JHB)
 
 jpeg("pca_screeplot_JHB.jpeg")
 par(mfrow = c(1,1))
-screeplot(pca12_JHB, type = "lines", npcs = 15) # looks like elbow at 6 or 8. will stick with 7 to be aligned with CT (is that right??)
+screeplot(pca12_JHB, type = "lines", npcs = 15, main = "Johannesburg") # looks like elbow at 6 or 8. will stick with 7 to be aligned with CT (is that right??)
+abline(v = 8, lty = 2)
 dev.off()
 
 # factor analysis on seven factors:
@@ -385,7 +387,7 @@ fa12_CT <- factanal(set12_CT[,22:59], factors = 7, scores = "regression")
 fa12_CT # 35% variance explained
 
 # for johannesburg
-fa12_JHB <- factanal(set12_JHB[,22:64], factors = 7, scores = "regression")
+fa12_JHB <- factanal(set12_JHB[,22:64], factors = 8, scores = "regression")
 fa12_JHB # 32% variance explained
 
 ## want to consider media vehicle loadings of the seven factors:
@@ -393,64 +395,75 @@ fa12_JHB # 32% variance explained
 
 # first create loadings dataframe
 loadings_CT <- fa12_CT$loadings
-vehicles = rownames(loadings_CT)
-loadings_CT <- data.frame(vehicles, loadings_CT[,1:7])
+vehicles_CT = rownames(loadings_CT)
+loadings_CT <- data.frame(vehicles_CT, loadings_CT[,1:7])
 
 # factor 1
-one <- loadings_CT %>% arrange(desc(Factor1)) %>% head(10) # SABC3, etv, SABC2, SABC1, DailyVoice, Son: (Afrikaans, Coloured/Indian, mature singles/mature couples, midlevelLSM, lower education)
-write.table(data.frame(vehicle = one[,1], loading = round(one[,2],2)), file = "one.csv")
+one_ct <- loadings_CT %>% arrange(desc(Factor1)) %>% head(10) # SABC3, etv, SABC2, SABC1, DailyVoice, Son: (Afrikaans, Coloured/Indian, mature singles/mature couples, midlevelLSM, lower education)
+write.table(data.frame(vehicle = one_ct[,1], loading = round(one_ct[,2],2)), file = "one_ct.csv")
 
 # factor 2
-two <- loadings_CT %>% arrange(desc(Factor2)) %>% head(10) # umhlobo wene, drum, metro fm, daily sun, kickoff, sabc1, jetclub: black, lower age,, lower income, xhosa, singles/young indp/sing fam, lower lsm, lifestyle 7,8,10
-write.table(data.frame(vehicle = two[,1], loading = round(two[,3],2)), file = "two.csv")
+two_ct <- loadings_CT %>% arrange(desc(Factor2)) %>% head(10) # umhlobo wene, drum, metro fm, daily sun, kickoff, sabc1, jetclub: black, lower age,, lower income, xhosa, singles/young indp/sing fam, lower lsm, lifestyle 7,8,10
+write.table(data.frame(vehicle = two_ct[,1], loading = round(two_ct[,3],2)), file = "two_ct.csv")
 
 # factor 3
-three <- loadings_CT %>% arrange(desc(Factor3)) %>% head(10) # int_search, int_social, int_news, 5FM, int_print, kfm, goodhope: higer edu, higher hhinc, athomesingles/young fam/ younger, higher lsm, cell sophisticates/bars&betters
-write.table(data.frame(vehicle = three[,1], loading = round(three[,4],2)), file = "three.csv")
+three_ct <- loadings_CT %>% arrange(desc(Factor3)) %>% head(10) # int_search, int_social, int_news, 5FM, int_print, kfm, goodhope: higer edu, higher hhinc, athomesingles/young fam/ younger, higher lsm, cell sophisticates/bars&betters
+write.table(data.frame(vehicle = three_ct[,1], loading = round(three_ct[,4],2)), file = "three_ct.csv")
 
 # factor 4
-four <- loadings_CT %>% arrange(desc(Factor4)) %>% head(10) # you, cape argus, sunday times, cape times, dstv, premiumCD, fairlady, mnet main, weargus,people, menshealth, goodhope: older, higherincome, seperated, higherLSM
-write.table(data.frame(vehicle = four[,1], loading = round(four[,5],2)), file = "four.csv")
+four_ct <- loadings_CT %>% arrange(desc(Factor4)) %>% head(10) # you, cape argus, sunday times, cape times, dstv, premiumCD, fairlady, mnet main, weargus,people, menshealth, goodhope: older, higherincome, seperated, higherLSM
+write.table(data.frame(vehicle = four_ct[,1], loading = round(four_ct[,5],2)), file = "four_ct.csv")
 
 # factor 5
-five <- loadings_CT %>% arrange(desc(Factor5)) %>% head(10) # huisgenoot, die burger, rapportsun, son, radio tygerberg: older, lower edu, afrikaans, mature family, avid readers
-write.table(data.frame(vehicle = five[,1], loading = round(five[,6],2)), file = "five.csv")
+five_ct <- loadings_CT %>% arrange(desc(Factor5)) %>% head(10) # huisgenoot, die burger, rapportsun, son, radio tygerberg: older, lower edu, afrikaans, mature family, avid readers
+write.table(data.frame(vehicle = five_ct[,1], loading = round(five_ct[,6],2)), file = "five_ct.csv")
 
 # factor 6
-six <- loadings_CT %>% arrange(desc(Factor6)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
-write.table(data.frame(vehicle = six[,1], loading = round(six[,7],2)), file = "six.csv")
+six_ct <- loadings_CT %>% arrange(desc(Factor6)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
+write.table(data.frame(vehicle = six_ct[,1], loading = round(six_ct[,7],2)), file = "six_ct.csv")
 
 # factor 7
-seven <- loadings_CT %>% arrange(desc(Factor7)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
-write.table(data.frame(vehicle = seven[,1], loading = round(seven[,8],2)), file = "seven.csv")
+seven_ct <- loadings_CT %>% arrange(desc(Factor7)) %>% head(10) # intPrint, int_news, (lower loadings on: int-social, int search, metrofm, mnet main, 5fm): higher edu,higher income, youngind/youngcouples,higher lsm, ages (20-40)
+write.table(data.frame(vehicle = seven_ct[,1], loading = round(seven_ct[,8],2)), file = "seven_ct.csv")
 
 ## for johannesburg
 
 # first create loadings dataframe for jhb
 loadings_JHB<- fa12_JHB$loadings
-vehicles_jhb = rownames(loadings_JHB)
-loadings_JHB <- data.frame(vehicles_jhb, loadings_JHB[,1:7])
+vehicles_JHB = rownames(loadings_JHB)
+loadings_JHB <- data.frame(vehicles_JHB, loadings_JHB[,1:8])
 
 # factor 1 jhb
 one_jhb <- loadings_JHB %>% arrange(desc(Factor1)) %>% head(10) # ct Factor 3 ?
+write.table(data.frame(vehicle = one_jhb[,1], loading = round(one_jhb[,2],2)), file = "one_jhb.csv")
 
 # factor 2 jhb
 two_jhb <- loadings_JHB %>% arrange(desc(Factor2)) %>% head(10) # ct Factor 1 ?
+write.table(data.frame(vehicle = two_jhb[,1], loading = round(two_jhb[,3],2)), file = "two_jhb.csv")
 
 # factor 3 jhb
 three_jhb <- loadings_JHB %>% arrange(desc(Factor3)) %>% head(10) # ct Factor 4 ?
+write.table(data.frame(vehicle = three_jhb[,1], loading = round(three_jhb[,4],2)), file = "three_jhb.csv")
 
 # factor 4 jhb
 four_jhb <- loadings_JHB %>% arrange(desc(Factor4)) %>% head(10) # ct Factor 2 ?
+write.table(data.frame(vehicle = four_jhb[,1], loading = round(four_jhb[,5],2)), file = "four_jhb.csv")
 
 # factor 5 jhb
 five_jhb <- loadings_JHB %>% arrange(desc(Factor5)) %>% head(10) # ct Factor 3/7 ?
+write.table(data.frame(vehicle = five_jhb[,1], loading = round(five_jhb[,6],2)), file = "five_jhb.csv")
 
 # factor 6 jhb
 six_jhb <- loadings_JHB %>% arrange(desc(Factor6)) %>% head(10)  # ct Factor 6 ?
+write.table(data.frame(vehicle = six_jhb[,1], loading = round(six_jhb[,7],2)), file = "six_jhb.csv")
 
 # factor 7 jhb
 seven_jhb <- loadings_JHB %>% arrange(desc(Factor7)) %>% head(10) # ct Factor 4 ?
+write.table(data.frame(vehicle = seven_jhb[,1], loading = round(seven_jhb[,8],2)), file = "seven_jhb.csv")
+
+# factor 8 jhb
+eight_jhb <- loadings_JHB %>% arrange(desc(Factor8)) %>% head(10) # c?
+write.table(data.frame(vehicle = eight_jhb[,1], loading = round(eight_jhb[,9],2)), file = "eight_jhb.csv")
 
 ## kmeans to determine categories based on proximity to all seven factor scores 
 
@@ -465,8 +478,9 @@ for(k in 3:20) {
         wss_ct <- append(wss_ct,temp$tot.withinss)
 }
 
-png('kmeansCTPlot2012.png')
-plot(3:20, wss_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
+jpeg('kmeansPlot_12_CT.jpeg')
+plot(3:20, wss_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares", main = "Cape Town" )
+abline(v = 8, lty = 2)
 dev.off()
 
 # for johannesburg
@@ -479,11 +493,12 @@ for(k in 3:20) {
         wss_jhb <- append(wss_jhb,temp$tot.withinss)
 }
 
-png('kmeansJhbPlot2012.png')
-plot(3:20, wss_jhb, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
+jpeg('kmeansPlot_12_JHB.jpeg')
+plot(3:20, wss_jhb, type = "b", xlab = "k-values", ylab = "total within sum of squares", main = "Johannesburg" )
+abline(v = 7, lty = 2)
 dev.off()
 
-# will stick to eight centers in both cities
+# eight for Cape Town and seven for Johannesburg
 # cape town
 set.seed(56)
 kmeans12_CT <- kmeans(fa12_CT$scores, centers = 8, nstart = 5, iter.max = 30)
@@ -491,7 +506,7 @@ table(kmeans12_CT$cluster) # reasonable distribution
 
 # johannesburg
 set.seed(56)
-kmeans12_JHB <- kmeans(fa12_JHB$scores, centers = 8, nstart = 5, iter.max = 30)
+kmeans12_JHB <- kmeans(fa12_JHB$scores, centers = 7, nstart = 5, iter.max = 30)
 table(kmeans12_JHB$cluster) # reasonable distribution
 
 # checking centers 
@@ -522,7 +537,7 @@ set12_JHB <- readRDS("set12_JHB.rds")
 ## 
 # consider media-type engagement values and media groups
 jpeg("mediaTypeVsGroup_12_CT")
-par(mfrow = c(2,3), oma = c(0,0,4,0))
+par(mfrow = c(2,3), oma = c(0,0,2,0))
 plot(set12_CT$radio ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
 plot(set12_CT$tv ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
 plot(set12_CT$newspapers ~ set12_CT$group, col = c(1,2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
@@ -531,12 +546,12 @@ title("Cape Town", outer = TRUE, cex.main = 2.5)
 dev.off()
 
 jpeg("mediaTypeVsGroup_12_JHB")
-par(mfrow = c(2,3), oma = c(0,0,4,0))
-plot(set12_JHB$radio ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
-plot(set12_JHB$tv ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
-plot(set12_JHB$newspapers ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
-plot(set12_JHB$magazines ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
-plot(set12_JHB$internet ~ set12_JHB$group, col = c(1,2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(set12_JHB$radio ~ set12_JHB$group, col = c(2,3,4,5,6,7,8), main = "radio", xlab = "group", ylab = '')
+plot(set12_JHB$tv ~ set12_JHB$group, col = c(2,3,4,5,6,7,8), main = "tv", xlab = "group", ylab = '')
+plot(set12_JHB$newspapers ~ set12_JHB$group, col = c(2,3,4,5,6,7,8), main = "newspapers", xlab = "group", ylab = '')
+plot(set12_JHB$magazines ~ set12_JHB$group, col = c(2,3,4,5,6,7,8), main = "magazines", xlab = "group", ylab = '')
+plot(set12_JHB$internet ~ set12_JHB$group, col = c(2,3,4,5,6,7,8), main = "internet", xlab = "group", ylab = '')
 title("Johannesburg", outer = TRUE, cex.main = 2.5)
 dev.off()
 
@@ -544,7 +559,7 @@ dev.off()
 
 #cape town
 jpeg("groupVsDemog1_12_CT")
-par(mfrow = c(2,3), oma = c(0,0,4,0))
+par(mfrow = c(2,3), oma = c(0,0,2,0))
 plot(set12_CT$group ~ factor(set12_CT$age, labels = c("15-24","25-44", "45-54","55+")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
 plot(set12_CT$group ~ factor(set12_CT$sex, labels = c("male", "female")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
 plot(set12_CT$group ~ factor(set12_CT$edu, labels = c("<matric", "matric",">matric" )), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
@@ -554,18 +569,18 @@ dev.off()
 
 # johannesburg
 jpeg("groupVsDemog1_12_JHB")
-par(mfrow = c(2,3), oma = c(0,0,4,0))
-plot(set12_JHB$group ~ factor(set12_JHB$age, labels = c("15-24","25-44", "45-54","55+")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
-plot(set12_JHB$group ~ factor(set12_JHB$sex, labels = c("male", "female")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
-plot(set12_JHB$group ~ factor(set12_JHB$edu, labels = c("<matric", "matric",">matric" )), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
-plot(set12_JHB$group ~ factor(set12_JHB$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(set12_JHB$group ~ factor(set12_JHB$age, labels = c("15-24","25-44", "45-54","55+")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'age')
+plot(set12_JHB$group ~ factor(set12_JHB$sex, labels = c("male", "female")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'sex')
+plot(set12_JHB$group ~ factor(set12_JHB$edu, labels = c("<matric", "matric",">matric" )), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'education')
+plot(set12_JHB$group ~ factor(set12_JHB$hh_inc, labels = c("<2500","2500-6999","7000-11999",">=12000")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'hh_income')
 title("Johannesburg", outer = TRUE, cex.main = 2.5)
 dev.off()
 # 
 # ##
 # cape town
 jpeg("groupVsDemog2_12_CT")
-par(mfrow = c(2,3), oma = c(0,0,4,0))
+par(mfrow = c(2,3), oma = c(0,0,2,0))
 plot(set12_CT$group ~ factor(set12_CT$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
 plot(set12_CT$group ~ factor(set12_CT$lang, labels = c("Afrikaans", "English", "Xhosa", "Other")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
 plot(set12_CT$group ~ factor(set12_CT$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
@@ -575,11 +590,11 @@ dev.off()
 
 # johannesburg
 jpeg("groupVsDemog2_12_JHB")
-par(mfrow = c(2,3), oma = c(0,0,4,0))
-plot(set12_JHB$group ~ factor(set12_JHB$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
-plot(set12_JHB$group ~ set12_JHB$lang, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
-plot(set12_JHB$group ~ factor(set12_JHB$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
-plot(set12_JHB$group ~ set12_JHB$cluster, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(set12_JHB$group ~ factor(set12_JHB$race,labels = c("black", "coloured", "indian", "white")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_JHB$group ~ set12_JHB$lang, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_JHB$group ~ factor(set12_JHB$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
+plot(set12_JHB$group ~ set12_JHB$cluster, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
 title("Johannesburg", outer = TRUE, cex.main = 2.5)
 dev.off()
 
@@ -596,19 +611,21 @@ dev.off()
 # johannesburg
 jpeg("groupVsDemog3_12_JHB")
 par(mfrow = c(2,3), oma = c(0,0,4,0))
-plot(set12_JHB$group ~ set12_JHB$lifestyle, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
-plot(set12_JHB$group ~ set12_JHB$attitudes, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
-plot(set12_JHB$group ~ set12_JHB$lifestages, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
-plot(set12_JHB$group ~ set12_JHB$mar_status, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+plot(set12_JHB$group ~ set12_JHB$lifestyle, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
+plot(set12_JHB$group ~ set12_JHB$attitudes, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
+plot(set12_JHB$group ~ set12_JHB$lifestages, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_JHB$group ~ set12_JHB$mar_status, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
 title("Johannesburg", outer = TRUE, cex.main = 2.5)
 dev.off()
 
 ## want to interpret media groups according to kmeans centroid coefficients:
 
-# look at them:
+# look at them and print to csv files
 kmeans12_CT$centers
-write.table(data.frame(round(kmeans12_CT$centers, 4)), file = "centroids_12.csv")
+write.table(data.frame(round(kmeans12_CT$centers, 4)), file = "centroids_12_CT.csv")
 
+kmeans12_JHB$centers
+write.table(data.frame(round(kmeans12_JHB$centers, 4)), file = "centroids_12_JHB.csv")
 
 
 
