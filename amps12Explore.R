@@ -787,10 +787,10 @@ u_1 <- cannonical_cor$ycoef[1,1] * set12_CT_factors_dummies[,14] + # since means
 cor(v_1,u_1) # matches...coool
 
 # follow up on this... what do I do with standardised coefficients???
-coefx1_standardised <- cannonical_cor$xcoef[,1] * apply(set12_CT_factors_dummies[,2:13], 2, sd)
-coefy1_standardised <- cannonical_cor$ycoef[,1] * apply(set12_CT_factors_dummies[,14:20], 2, sd)
-
-plot(v_1, u_1) # good elliptical pattern... so can have some confidence...
+u1_standardised <- cannonical_cor$xcoef[,1] * apply(set12_CT_factors_dummies[,2:13], 2, sd)
+v1_standardised <- cannonical_cor$ycoef[,1] * apply(set12_CT_factors_dummies[,14:20], 2, sd)
+write.table(data.frame(round(u1_standardised, 5)), file = "u1_std_12_CT.csv")
+write.table(data.frame(round(v1_standardised, 5)), file = "v1_std_12_CT.csv")
 
 # just making sure I understand what's going on "under the hood"...
 v_2 <- rep(0, 1960)
@@ -808,10 +808,19 @@ u_2 <- cannonical_cor$ycoef[1,2] * set12_CT_factors_dummies[,14] + # since means
         cannonical_cor$ycoef[7,2] * set12_CT_factors_dummies[,20]
 cor(v_2, u_2) # right
 
+u2_standardised <- cannonical_cor$xcoef[,2] * apply(set12_CT_factors_dummies[,2:13], 2, sd)
+v2_standardised <- cannonical_cor$ycoef[,2] * apply(set12_CT_factors_dummies[,14:20], 2, sd)
+write.table(data.frame(round(u2_standardised, 5)), file = "u2_std_12_CT.csv")
+write.table(data.frame(round(v2_standardised, 5)), file = "v2_std_12_CT.csv")
+
+jpeg("ccPlotsExperimental.jpeg")
+par(mfrow = c(1,2))
+plot(v_1, u_1) # good elliptical pattern... so can have some confidence...
 plot(v_2, u_2)
+dev.off()
 
 # try to understand what causes what seems to be very clear clustering (not too sure what to do about it though):
-try_ind2 <- u_2 > 0
+try_ind2 <- v_2 > 0.01
 
 tops <- set12_CT[try_ind2,]
 bottoms <- set12_CT[!try_ind2,]
