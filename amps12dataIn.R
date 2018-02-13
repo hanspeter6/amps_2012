@@ -35,8 +35,6 @@ load("labels_12.RData")
 # names_print_12 <- str_subset(print_12_labels, 'Number of different issues usually read or page through') %>%
 #         str_replace('.+\\s-', '')
 
-fix(names_print_12)
-
 saveRDS(names_print_12, "names_print_12.rds")
 
 names_print_12 <- readRDS("names_print_12.rds")
@@ -178,8 +176,6 @@ names_tv_12 <- electr_12_labels %>%
         str_replace('.+Watched\\s','') %>%
         str_replace('in\\sthe\\sPAST\\s4\\sWEEKS','') %>%
         str_trim()
-
-fix(names_tv_12)
 
 saveRDS(names_tv_12, "names_tv_12.rds")
 names_tv_12 <- readRDS("names_tv_12.rds")

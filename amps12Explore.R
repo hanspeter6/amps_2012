@@ -10,6 +10,7 @@ library(kohonen)
 library(caret)
 library(randomForest)
 library(MASS)
+library(CCA)
 # 
 
 # read datafiles
@@ -206,7 +207,6 @@ ind_train <- createDataPartition(set12$cluster, p = 0.7, list = FALSE)
 training <- set12[ind_train,]
 testing <- set12[-ind_train,]
 
-# using only media type as set12_CT_factors
 # # using random forest:
 forest12_type <- randomForest(cluster ~ newspapers
                               + tv
@@ -271,7 +271,7 @@ confusionMatrix(pred_lda12_demogr$class, testing$cluster)
 ##  some qualitative consideration of the four types:
 
 # consider a single tree partitioning to try to add meaning to the six clusters
-control <- rpart.control(maxdepth = 3, cp = 0.001)
+control <- rpart.control(maxdepth = 4, cp = 0.001)
 tree12 <- rpart(cluster ~ newspapers + tv + radio + magazines + internet, 
                 data = set12,
                 control = control) # weights = pwgt
@@ -356,9 +356,21 @@ set12_CT$lang <- ifelse(set12_CT$lang == 4, 3, set12_CT$lang)
 set12_CT$lang <- ifelse(!set12_CT$lang %in% c(1,2,3), 4, set12_CT$lang)
 set12_CT$lang <- factor(set12_CT$lang)
 
+# consider distributions of media data:
+hist(set12_CT$Voice.Cape)
+hist(log(set12_CT$Voice.Cape))
+
 # scale the media vehicle columns (note, exclude the clusters for type columns)
 set12_CT[,22:59] <- scale(set12_CT[,22:59])
 set12_JHB[,22:64] <- scale(set12_JHB[,22:64])
+
+saveRDS(set12_CT, "set12_CT.rds")
+saveRDS(set12_JHB, "set12_JHB.rds")
+
+set12_CT <- readRDS("set12_CT.rds")
+set12_JHB <- readRDS("set12_JHB.rds")
+
+
 
 ## first pca to get sense of latent structure dimensions
 ## Cape Town
@@ -390,17 +402,115 @@ fa12_CT # 35% variance explained
 fa12_JHB <- factanal(set12_JHB[,22:64], factors = 8, scores = "regression")
 fa12_JHB # 32% variance explained
 
+# save for later use:
+saveRDS(fa12_CT, "fa12_CT.rds")
+saveRDS(fa12_JHB, "fa12_JHB.rds")
+
+fa12_CT <- readRDS("fa12_CT.rds")
+fa12_JHB <- readRDS("fa12_JHB.rds")
+
+#### SOME EXPERIMENTATION WITH FACTOR ANALYSES SINCE THIS STEP VERY IMPORTANT!!!
+
+# consider also the number of eigenvalues:
+eigen_ct <- eigen(cor(set12_CT[,22:59]))$values # 11
+eigen_jhb <- eigen(cor(set12_JHB[,22:64]))$values # 12
+
+# trying factanal on these numbers:
+# for cape town
+fa12_CT_eigen <- factanal(set12_CT[,22:59], factors = 11, scores = "regression")
+fa12_CT_eigen # 42% variance explained
+# for johannesburg
+fa12_JHB_eigen <- factanal(set12_JHB[,22:64], factors = 12, scores = "regression")
+fa12_JHB_eigen # 40% variance explained
+
+# then for the sake of simplicity also consider reducing factors for both:
+# for cape town
+fa12_CT_ten <- factanal(set12_CT[,22:59], factors = 10, scores = "regression")
+fa12_CT_ten # 41% variance explained _ acceptable drop
+# for johannesburg
+fa12_JHB_twelve <- factanal(set12_JHB[,22:64], factors = 12, scores = "regression")
+fa12_JHB_twelve # 40% explained
+
+# adding promax...
+fa12_CT_F10_promax <- factanal(set12_CT[,22:59], factors = 10, scores = "regression", rotation = "promax")
+fa12_JHB_F12_promax <- factanal(set12_JHB[,22:64], factors = 12, scores = "regression", rotation = "promax")
+
+# create loadings dataframe
+loadings_CT_F10_promax <- data.frame(vehicles_CT = rownames(fa12_CT_F10_promax$loadings), fa12_CT_F10_promax$loadings[,1:10])
+loadings_JHB_F12_promax <- data.frame(vehicles_JHB = rownames(fa12_JHB_F12_promax$loadings), fa12_JHB_F12_promax$loadings[,1:12])
+
+# write loadings > 0.2 to table file for use in Lyx:
+# cape town
+for(i in 1:10) {
+        temp <- loadings_CT_F10_promax %>%
+                select_("vehicles_CT", paste("Factor", i, sep = '')) %>%
+                filter_(paste("Factor", i, " > ", "0.2", sep = '')) %>%
+                arrange_(paste("desc(Factor", i, ")", sep = ''))
+        
+        write.table(data.frame(vehicles = temp[,1], loading = round(temp[,2],2)), file = "loadings_ct.csv", row.names = FALSE, append = TRUE)
+}
+# johannesburg
+for(i in 1:12) {
+        temp <- loadings_JHB_F12_promax %>%
+                select_("vehicles_JHB", paste("Factor", i, sep = '')) %>%
+                filter_(paste("Factor", i, " > ", "0.2", sep = '')) %>%
+                arrange_(paste("desc(Factor", i, ")", sep = ''))
+        
+        write.table(data.frame(vehicles = temp[,1], loading = round(temp[,2],2)), file = "loadings_jhb.csv", row.names = FALSE, append = TRUE)
+}
+
+
+# getting loadings for the larger factors and for the oblique rotation:
+# first create loadings dataframe
+loadings_obl_CT <- obl_ct$loadings
+vehicles_obl_CT = rownames(loadings_obl_CT)
+loadings_obl_CT <- data.frame(vehicles_obl_CT, loadings_obl_CT[,1:10])
+
+# look at each factor
+loadings_obl_CT %>% arrange(desc(Factor1)) %>% head(10) #
+loadings_obl_CT %>% arrange(desc(Factor2)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor3)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor4)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor5)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor6)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor7)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor8)) %>% head(10) 
+loadings_obl_CT %>% arrange(desc(Factor9)) %>% head(10)
+loadings_obl_CT %>% arrange(desc(Factor10)) %>% head(10) 
+
+# want to consider scores and kmeans stuff on this basis:
+
+# try principal components fact analysis
+# Principal Axis Factor Analysis
+library(psych)
+fit <- fa(set12_CT[,22:59], nfactors=10, fm = "pa", rotate = "varimax")
+fit # print results
+
+
+
+
+
+
+
 ## want to consider media vehicle loadings of the seven factors:
 ## cape town (note: want to try to ensure factor 1 for cape town is similar to factor 1 jhb, see below (will use Cape Town as basis))
 
 # first create loadings dataframe
-loadings_CT <- fa12_CT$loadings
-vehicles_CT = rownames(loadings_CT)
-loadings_CT <- data.frame(vehicles_CT, loadings_CT[,1:7])
+loadings_CT <- data.frame(vehicles_CT = rownames(fa12_CT$loadings), fa12_CT$loadings[,1:7])
+
+# write loadings > 0.2 to table file for use in Lyx:
+for(i in 1:7) {
+        temp <- loadings_CT %>%
+                select_("vehicles_CT", paste("Factor", i, sep = '')) %>%
+                filter_(paste("Factor", i, " > ", "0.2", sep = '')) %>%
+                arrange_(paste("desc(Factor", i, ")", sep = ''))
+        
+        write.table(data.frame(vehicles = temp[,1], loading = round(temp[,2],2)), file = "test2_ct.csv", row.names = FALSE, append = TRUE)
+}
 
 # factor 1
-one_ct <- loadings_CT %>% arrange(desc(Factor1)) %>% head(10) # SABC3, etv, SABC2, SABC1, DailyVoice, Son: (Afrikaans, Coloured/Indian, mature singles/mature couples, midlevelLSM, lower education)
-write.table(data.frame(vehicle = one_ct[,1], loading = round(one_ct[,2],2)), file = "one_ct.csv")
+one_ct <- loadings_CT %>% arrange(desc(Factor1)) %>% filter(Factor1 > 0.2) # SABC3, etv, SABC2, SABC1, DailyVoice, Son: (Afrikaans, Coloured/Indian, mature singles/mature couples, midlevelLSM, lower education)
+write.table(data.frame(Factor1 = one_ct[,1], loading = round(one_ct[,2],2)), file = "one_ct.csv", row.names = FALSE)
 
 # factor 2
 two_ct <- loadings_CT %>% arrange(desc(Factor2)) %>% head(10) # umhlobo wene, drum, metro fm, daily sun, kickoff, sabc1, jetclub: black, lower age,, lower income, xhosa, singles/young indp/sing fam, lower lsm, lifestyle 7,8,10
@@ -513,6 +623,12 @@ table(kmeans12_JHB$cluster) # reasonable distribution
 kmeans12_CT$centers
 kmeans12_JHB$centers
 
+heatmap(kmeans12_CT$centers)
+
+
+
+
+
 ## add kmeans groups as factors to dataset
 ## cape town
 set12_CT <- set12_CT %>%
@@ -623,9 +739,13 @@ dev.off()
 # look at them and print to csv files
 kmeans12_CT$centers
 write.table(data.frame(round(kmeans12_CT$centers, 4)), file = "centroids_12_CT.csv")
+library(RColorBrewer)
+# coul = colorRampPalette(brewer.pal(8, "PiYG"))(25)
+heatmap(kmeans12_CT$centers, Colv = NA, revC = TRUE, Rowv = NA, cexRow=1.5, col= colorRampPalette(brewer.pal(8, "Blues"))(25), legend=c("none", "col"))
 
 kmeans12_JHB$centers
 write.table(data.frame(round(kmeans12_JHB$centers, 4)), file = "centroids_12_JHB.csv")
+heatmap(kmeans12_JHB$centers, Colv = NA, revC = TRUE, Rowv = NA, cexRow=1.5, col= colorRampPalette(brewer.pal(8, "Blues"))(25), legend=c("none", "col"))
 
 ## RETURN to try this...maybe good ..
 # try consider tree for explanatory reasons:
@@ -747,18 +867,41 @@ write.table(data.frame(round(lm_summary_example$coefficients,4)), file = "lm_sum
 sqrt(mean((predict(lm2_ct, newdata = testing_lm_12_ct) - testing_lm_12_ct$Factor1)^2))
 range(training_lm_12_ct$Factor2)[2] - range(training_lm_12_ct$Factor2)[1]
 
-## and canonical collerations...
-# Some canonical trials on using selected predictor (demographic) variables
+
+## Some canonical trials on using selected predictor (demographic) variables
 # 
 # creating model matrix for dummy variables of selected unordered factors:
 set12_CT_factors_dummies <- as.data.frame(model.matrix(~ age + sex + edu + hh_inc + race + lsm + cluster + Factor1 + Factor2 + Factor3 + Factor4 + Factor5 + Factor6 + Factor7, data = set12_CT_factors))
 
-# get sense of correlations of the factors and the demographic variables
-cor(set12_CT_factors[,c("Factor1", "Factor2", "Factor3", "Factor4", "Factor5", "Factor6", "Factor7")])
-cor(set12_CT_factors_dummies)
+# consider means and sd of the set
 
-cannonical_cor <- cancor(x = set12_CT_factors_dummies[,2:13], y = set12_CT_factors_dummies[,14:20])
-cannonical_cor
+means_sd12_ct <-  round(data.frame(cbind(mean = apply(set12_CT_factors_dummies, 2, mean),
+      stdDev = apply(set12_CT_factors_dummies, 2, sd))), 2)
+
+# get sense of correlations of the factors and the demographic variables
+corrs12_ct <- round(cor(set12_CT_factors_dummies[,-1]),2)
+corrplot(cor(set12_CT_factors_dummies[,-1]),
+         method = "pie",
+         order = "original",
+         hclust.method = "complete",
+         type = "lower",
+         tl.col = 'black',
+         mar = c(1,1,1,1),
+         addCoefasPercent = TRUE,
+         tl.pos = TRUE,
+         las = 0)
+
+
+library("CCA")
+X = set12_CT_factors_dummies[,2:21]
+Y = set12_CT_factors_dummies[,22:28]
+cannonical_cor <- cc(X,Y)
+plot(cannonical_cor$cor,type="b")
+plt.cc(cannonical_cor)
+res.regul = estim.regul(X,Y) # leave one out criterion 2D grid to determine optimum values for regularisation
+img.estim.regul(res.regul)
+
+
 
 # just making sure I understand what's going on "under the hood"...
 v_1 <- rep(0, 1960)
