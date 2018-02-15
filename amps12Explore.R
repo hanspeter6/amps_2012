@@ -372,9 +372,178 @@ set12_JHB <- readRDS("set12_JHB.rds")
 
 ##### ALTERNATIVE APPROACH FROM HERE:
 
+# Determine Number of Factors to Extract
+library(nFactors)
+ev_ct <- eigen(cor(set12_CT[,22:59]))
+ap_ct <- parallel(subject=nrow(set12_CT[,22:59]),var=ncol(set12_CT[,22:59]),
+               rep=100,cent=.05)
+nS_ct <- nScree(x=ev_ct$values, aparallel=ap_ct$eigen$qevpea)
+jpeg("nScree_12_ct")
+plotnScree(nS_ct, main = "Cape Town")
+dev.off()
+
+ev_jhb <- eigen(cor(set12_JHB[,22:64]))
+ap_jhb <- parallel(subject=nrow(set12_JHB[,22:64]),var=ncol(set12_JHB[,22:64]),
+               rep=100,cent=.05)
+nS_jhb <- nScree(x=ev_jhb$values, aparallel=ap_jhb$eigen$qevpea)
+jpeg("nScree_12_jhb")
+plotnScree(nS_jhb, main = "Johannesburg")
+dev.off()
+
+# starting analysis with FactoMineR and factoextra
+library(FactoMineR)
+library(factoextra)
+
+# First some examination of the dataset
 
 
 
+# fitting PCA:
+pca_12_ct <- PCA(set12_CT[,22:59], ncp = 7, graph = FALSE, scale = FALSE) # graphs generated automatically
+pca_12_jhb <- PCA(set12_JHB[,22:64], ncp = 5, graph = FALSE) 
+
+# getting correlation output:
+var_12_ct <- get_pca_var(pca_12_ct)
+var_12_jhb <- get_pca_var(pca_12_jhb)
+
+# want to identify highest contributions/ correlations to media vehicles:
+# visualising some rings of  contributions/correlations:
+fviz_pca_var(pca_12_ct, col.var = "contrib", axes = c(1:2)) +
+        scale_color_gradient2(low = "white", mid = "blue", high = "red", midpoint = 1.3) +
+        theme_minimal()
+fviz_pca_var(pca_12_jhb, col.var = "contrib") +
+        scale_color_gradient2(low = "white", mid = "yellow", high = "red", midpoint = 1.6) +
+        theme_minimal()
+
+# will consider only relatively large postive contributions since... NOT SO SURE ABOUT THIS NOW...
+
+var_12_ct$cor[1:5,1:5] # or correlations since standardised input
+var_12_ct$contrib[1:5,1:5]
+var_12_ct$cos2[1:5,1:5]
+var_12_ct$coord[1:5,1:5]
+
+# can identify most important
+# # high absolute values describe variables that best describe a particular dimension.
+# and a negatively correlated value (eg Kickoff) means that individuals who have high coordinates on the given dimension would have a low value for engagement with kickoff... (see FactoMineR document p 8)
+
+dimdesc(pca_12_ct)
+
+#  could add other values by adding arguments for the categorical variables like this:
+# set up the dataset to exlude initial 2 vars and the total media engagement ones:
+trial_set <- set12_CT[,c(3:7,10:12,14:16,60, 22:59)]
+pca_12_ct_supp <- PCA(trial_set, quali.sup = 1:12, ncp = 7, graph = FALSE, scale = FALSE) # graphs generated automatically
+
+dimdesc(pca_12_ct_supp)
+
+# try factominer considering mixed data
+# trying out FAMD:
+pca_12_ct_famd <- FAMD(trial_set, ncp = 7, graph = FALSE)
+summary(pca_12_ct_famd)
+plot(pca_12_ct_famd, habillage = 12 , axes = 3:4)
+test_famd <- pca_12_ct_famd$quali.var$contrib
+rownames(test_famd) <- c("age1", "age2", "age3", "age4",
+                         "sex1", "sex2",
+                         "edu1", "edu2", "edu3",
+                         "race1", "race2", "race3", "race4", rownames(test_famd)[14:63])
+test_famd
+
+# confidence intervals around categories
+plotellipses(pca_12_ct_famd, keepvar = c("cluster") , axes = 3:4, pch = 3, keepnames = FALSE, label = "none", level = 0.99)
+
+
+# OK... so I can go some way toward describing main media vehicles and also main demographics per dimension.
+
+# next want to work with the scores:
+# recall, getting scores from factominer:
+
+# these are the scores: 
+scores_12_ct <- pca_12_ct$ind$coord
+scores_12_jhb <- pca_12_jhb$ind$coord
+
+# doing kmeans on the scores:
+
+# try using pamk()
+library(fpc)
+kmean_ct <- pamk(pca_12_ct$ind$coord, krange = 4:12, usepam = FALSE, criterion = "multiasw") # gives 5
+kmean_jhb <- pamk(pca_12_jhb$ind$coord, krange = 4:12, usepam = FALSE, criterion = "multiasw") # gives 4
+table(kmean_ct$pamobject$clustering)
+table(kmean_jhb$pamobject$clustering)
+kmean_ct$pamobject$medoids
+kmean_jhb$pamobject$medoids
+
+
+# or
+
+test <- kmeans(pca_12_ct$ind$coord, centers = 5)
+sum(test$withinss)
+test$betweenss
+
+# for cape town
+wss_12_ct <- vector()
+for(k in 3:20) {
+        temp <- kmeans(pca_12_ct$ind$coord,
+                       centers = k,
+                       nstart = 3,
+                       iter.max = 20)
+        wss_12_ct <- append(wss_12_ct,temp$tot.withinss)
+}
+
+# try from QuickR
+wss <- (nrow(pca_12_ct$ind$coord)-1)*sum(apply(pca_12_ct$ind$coord,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(pca_12_ct$ind$coord, 
+                                     centers=i)$withinss)
+plot(2:16, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+
+wss <- (nrow(pca_12_jhb$ind$coord)-1)*sum(apply(pca_12_jhb$ind$coord,2,var))
+for (i in 2:15) wss[i] <- sum(kmeans(pca_12_jhb$ind$coord, 
+                                     centers=i)$withinss)
+plot(1:15, wss, type="b", xlab="Number of Clusters",
+     ylab="Within groups sum of squares")
+
+aggregate(kmean_ct$pamobject, by=list(fit$cluster),FUN=mean) ## to get mean... want to check how this compares with medoids...
+
+
+
+
+jpeg('kmeansPlot_12_CT.jpeg')
+plot(3:20, wss_12_ct, type = "b", xlab = "k-values", ylab = "total within sum of squares", main = "Cape Town" )
+abline(v = 8, lty = 2)
+dev.off()
+
+# for johannesburg
+wss_12_jhb <- vector()
+for(k in 3:20) {
+        temp <- kmeans(pca_12_jhb$ind$coord,
+                       centers = k,
+                       nstart = 3,
+                       iter.max = 20)
+        wss_12_jhb <- append(wss_12_jhb,temp$tot.withinss)
+}
+
+jpeg('kmeansPlot_12_JHB.jpeg')
+plot(3:20, wss_12_jhb, type = "b", xlab = "k-values", ylab = "total within sum of squares", main = "Johannesburg" )
+abline(v = 7, lty = 2)
+dev.off()
+
+# eight for Cape Town and seven for Johannesburg
+# cape town
+set.seed(56)
+kmeans_12_CT <- kmeans(fa12_CT$scores, centers = 8, nstart = 5, iter.max = 30)
+table(kmeans12_CT$cluster) # reasonable distribution
+
+# johannesburg
+set.seed(56)
+kmeans_12_JHB <- kmeans(fa12_JHB$scores, centers = 7, nstart = 5, iter.max = 30)
+table(kmeans12_JHB$cluster) # reasonable distribution
+
+# checking centers 
+kmeans12_CT$centers
+kmeans12_JHB$centers
+
+kmeans_12_ct <- kmeans(pca_12_ct$ind$coord, 5)
+                             
 
 #### PREVIOUS APPROACH FROM HERE:
 ## first pca to get sense of latent structure dimensions
@@ -413,6 +582,8 @@ saveRDS(fa12_JHB, "fa12_JHB.rds")
 
 fa12_CT <- readRDS("fa12_CT.rds")
 fa12_JHB <- readRDS("fa12_JHB.rds")
+
+
 
 #### SOME EXPERIMENTATION WITH FACTOR ANALYSES SINCE THIS STEP VERY IMPORTANT!!!
 
@@ -534,13 +705,16 @@ loadings(fit_princomp)[1,1:7]
 fit_prcomp$x[1,1:7]
 fit_princomp$scores[1,1:7]
 
+
+
+
 # trying out FAMD:
 result2 <- FAMD(set12_CT[,22:60])
 summary(result2)
 plot(result2, habillage = 39, axes = 4:5)
 
 # very useful continuous variable description from factomine
-condes(set12_CT[,22:60],num.var = 4)
+condes(set12_CT[,22:59],num.var = c(5))
 
 # dimension description function
 dimdesc(result2, axes = 4:5)
