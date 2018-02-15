@@ -370,8 +370,13 @@ saveRDS(set12_JHB, "set12_JHB.rds")
 set12_CT <- readRDS("set12_CT.rds")
 set12_JHB <- readRDS("set12_JHB.rds")
 
+##### ALTERNATIVE APPROACH FROM HERE:
 
 
+
+
+
+#### PREVIOUS APPROACH FROM HERE:
 ## first pca to get sense of latent structure dimensions
 ## Cape Town
 pca12_CT <- princomp(set12_CT[,22:59])
@@ -483,10 +488,153 @@ loadings_obl_CT %>% arrange(desc(Factor10)) %>% head(10)
 # try principal components fact analysis
 # Principal Axis Factor Analysis
 library(psych)
-fit <- fa(set12_CT[,22:59], nfactors=10, fm = "pa", rotate = "varimax")
+fit <- fa(set12_CT[,22:59], nfactors = 7, fm = "pa", rotate = "varimax")
 fit # print results
 
+fit$r.scores
+fit$e.values
+fit$fit
+fit$objective
+fit$PVAL
+fit$scores
 
+# Determine Number of Factors to Extract
+library(nFactors)
+ev <- eigen(cor(set12_CT[,22:59])) # get eigenvalues
+ap <- parallel(subject=nrow(set12_CT[,22:59]),var=ncol(set12_CT[,22:59]),
+               rep=100,cent=.05)
+nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+plotnScree(nS)
+
+# PCA Variable Factor Map 
+library(FactoMineR)
+fit_PCA <- PCA(set12_CT[,22:59], ncp = 7) # graphs generated automatically
+fit_princomp <- princomp(set12_CT[,22:59])
+fit_prcomp <- prcomp(set12_CT[,22:59])
+fit_principal <- principal(set12_CT[,22:59], nfactors = 7)
+fit_fa_pa <- fa(set12_CT[,22:59], nfactors = 7, fm = "pa", rotate = "none")
+
+
+fit_fa_pa$loadings[1,]
+fit_fa_pa$weights[1,]
+fit_fa_pa$Structure[1,]
+fit_fa_pa$TLI
+
+
+fit2$var$coord[1,1:7]/sqrt(fit2$eig[1:7,1]) # same as loadings....?? what's going on here..
+fit2$var$contrib
+
+print.psych(fit_fa_pa, sort = TRUE)
+fit_principal$loadings[1,]
+
+
+fit_prcomp$rotation[1,1:7]
+loadings(fit_princomp)[1,1:7]
+
+fit_prcomp$x[1,1:7]
+fit_princomp$scores[1,1:7]
+
+# trying out FAMD:
+result2 <- FAMD(set12_CT[,22:60])
+summary(result2)
+plot(result2, habillage = 39, axes = 4:5)
+
+# very useful continuous variable description from factomine
+condes(set12_CT[,22:60],num.var = 4)
+
+# dimension description function
+dimdesc(result2, axes = 4:5)
+
+# confidence intervals around categories
+plotellipses(result2, keepvar = c("cluster") , axes = 3:4, pch = 3, keepnames = FALSE, label = "none", level = 0.99)
+
+
+# some experimentation to make sure I fully grasp PCA first:
+trial_pca <- princomp(set12_CT[,22:59])
+trial_pca_cormat <- princomp(set12_CT[,22:59], cor = TRUE)
+
+biplot(trial_pca)
+
+# compare the two loadings and std dev to show its the same... so standardised input or cormatrix results in corrleations.
+loadings(trial_pca)[1:5,1:5]
+loadings(trial_pca_cormat)[1:5,1:5]
+trial_pca$sdev[1:5]
+trial_pca_cormat$sdev[1:5]
+var(trial_pca$scores[,1])
+
+trial_pca$scores
+
+var(trial_pca$scores[,1]) # equal to the first eigen value of the covariance matrix
+eigen(cov(set12_CT[,22:59]))$values[1]
+
+sqrt(eigen(cor(set12_CT[,22:59]))$values)[1] # this is equal to the std dev of the components (length of the spread along that axis)
+trial_pca$sdev[1]
+
+trial_pca$loadings[1:5,1:5]
+eigen(cor(set12_CT[,22:59]))$vectors[1:5,1:5] # loadings are coefficients of components = eigen vectors
+
+# try a cor between first component and first variable (NB since already standarised):
+(trial_pca$loadings[1,1] * trial_pca$sdev[1]) # not sure how the sign should be treated.
+
+# OK.. now for Factor Analysis
+?fa # note... variables should be standardised.
+
+#check that they are standardised:
+apply(set12_CT[,22:59], 2, mean)
+apply(set12_CT[,22:59], 2, sd)
+
+trial_fa <- fa(set12_CT[,22:59], nfactors = 7, fm = "pa")
+trial_fa$e.values
+trial_fa$values
+trial_fa$communality
+trial_fa$loadings[1:5,1:5]
+trial_fa$Structure[1:5,1:5]
+trial_fa$fit
+
+# will try to work from principal components and compare values...
+factors <- scale(trial_pca$scores[,1:7], center = FALSE, scale = TRUE)
+
+trial_fa$loadings[1:7,1:7]
+trial_fa$uniquenesses[1:7]
+
+#try replicate Die Burger values:
+dieBurger2 <- trial_fa$loadings[1,1]*factors[,1] +
+        trial_fa$loadings[1,2]*factors[,2] +
+        trial_fa$loadings[1,3]*factors[,3] +
+        trial_fa$loadings[1,4]*factors[,4] +
+        trial_fa$loadings[1,5]*factors[,5] +
+        trial_fa$loadings[1,6]*factors[,6] +
+        trial_fa$loadings[1,7]*factors[,7] +
+        trial_fa$uniquenesses[1]
+
+dieBurger2[1:5]
+set12_CT$Die.Burger[1:5]  #doesnt work... not sure why??
+
+# try again and understand FactoMineR's PCA:
+library(FactoMineR)
+trial_PCA <- PCA(set12_CT[,22:59], ncp = 7, scale = FALSE)
+trial_PCA$var$cor[1:5, 1:5]
+trial_PCA$var$coord[1:5,1:5]
+trial_PCA$var$contrib[1:5, 1:5]
+sd(trial_PCA$var$cor[,1])
+
+trial_PCA$var$cor[1:5,1]/trial_pca$sdev[1]
+trial_pca$loadings[1:5,1:5]
+
+#compare factominer with princomp:
+loadings_PCA <- sweep(trial_PCA$var$coord,2,sqrt(trial_PCA$eig[1:ncol(trial_PCA$var$coord),1]),FUN="/")
+scores_PCA <- trial_PCA$ind$coord
+
+# check loadings and scores...yay..it works!!
+loadings_PCA[1:5,1:5]
+trial_pca$loadings[1:5,1:5]
+
+scores_PCA[1:5,1:5]
+trial_pca$scores[1:5,1:5]
+
+# tried to compare factominer with fa's principal component factor analysis (not managed):
+loadings_PCA[1:5,1:5]
+trial_fa$loadings[1:5,1:5]
 
 
 
