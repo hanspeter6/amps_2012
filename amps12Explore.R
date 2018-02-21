@@ -846,8 +846,11 @@ categoricals_12_CT$lifestyle <- factor(categoricals_12_CT$lifestyle,
                                   levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
                                   labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "avid readers", "traditionalists","cell fundamentals", "homebodies", "bars n betters", "showgoers", "gardeners"))
 categoricals_12_CT$attitudes <- factor(categoricals_12_CT$attitudes,
-                                  levels = c(1,2,3,4,5,6),
-                                  labels = c("none", "now generation", "nation builders", "distants", "rooted", "global citizens"))
+                                  levels = c(1,2,3,4,5,6,7),
+                                  labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
+categoricals_12_CT$cluster <- factor(categoricals_12_CT$cluster,
+                                        levels = c(1,2,3,4,5),
+                                        labels = c("radio and tv above all else", "tv is all", "minimal media", "maximum media", "big on internet and some tv"))
 
 # Johannesburg
 categoricals_12_JHB$sex <- factor(categoricals_12_JHB$sex,
@@ -869,95 +872,203 @@ categoricals_12_JHB$lifestyle <- factor(categoricals_12_JHB$lifestyle,
                                        levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
                                        labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "avid readers", "traditionalists","cell fundamentals", "homebodies", "bars n betters", "showgoers", "gardeners"))
 categoricals_12_JHB$attitudes <- factor(categoricals_12_JHB$attitudes,
-                                       levels = c(1,2,3,4,5,6),
-                                       labels = c("none", "now generation", "nation builders", "distants", "rooted", "global citizens"))
+                                       levels = c(1,2,3,4,5,6,7),
+                                       labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
+categoricals_12_JHB$cluster <- factor(categoricals_12_JHB$cluster,
+                                     levels = c(1,2,3,4,5),
+                                     labels = c("radio and tv above all else", "tv is all", "minimal media", "maximum media", "big on internet and some tv"))
+
+# saving these objects:
+saveRDS(categoricals_12_CT, "categoricals_12_CT.rds")
+saveRDS(categoricals_12_JHB, "categoricals_12_JHB.rds")
+
+categoricals_12_CT <- readRDS("categoricals_12_CT.rds")
+categoricals_12_JHB <- readRDS("categoricals_12_JHB.rds")
 
 # creating objects with supplementary variables (qualitative and quantitative) and active one defined:
 pca_12_ct_supp <- PCA(categoricals_12_CT, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12), ncp = 7, graph = FALSE)
 pca_12_jhb_supp <- PCA(categoricals_12_JHB, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12), ncp = 5, graph = FALSE)
+
+
+test2 <- dimdesc(pca_12_ct_supp)
+test3 <- test2$Dim.1$category
+test4 <- as.data.frame(test3)
+test5 <- test4 %>%
+        mutate(vehicle = rownames(test3)) %>%
+        arrange(desc(Estimate))
+
+# visualising all the quantitative (including supplementary vars)
+fviz_pca_var(pca_12_ct_supp,
+             axes = c(1,2),
+             col.var="contrib",
+             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+             title = "Cape Town",
+             repel = TRUE # Avoid text overlapping
+             )
+
+
+# R2 = square correlation ratio between the coordinates of individuals (scores) on the dimension and the categorical variables. Used in one-way anovas to see
+# if there is a link btw continuous( dim) and a categorical.
+# Estimate: eg...0.45: a coefficient or coordinate value. Sum of all estimates for a dimension = 0.
+#         : 
 
 # checking out this function... helpful (for some reason problems in cape town set with vars 47:49 in ct set). Running it on jhb set to help me with interpretation
 library(FactoInvestigate)
 Investigate(pca_12_jhb_supp)
 
 
-
-
-
-
-# very useful function to extract contributions, scores etc.
-dimdesc(pca_12_ct_supp, proba = 0.05)
-
-
-
-
-# Graph of variables: default plot
-fviz_pca_var(pca_12_ct, col.var = "black")
-
-
-
 # Contributions of variables to PC1
-fviz_contrib(pca_12_ct, choice = "var", axes = 1, top = 10)
-# Contributions of variables to PC2
+fviz_contrib(pca_12_ct_supp, choice = "var", axes = 1, top = 15)
+# This reference line corresponds to the expected value if the contribution where uniform
+#Contributions of variables to PC2
 fviz_contrib(pca_12_ct, choice = "var", axes = 2, top = 10)
 
+# try ellipses again:
+plotellipses(pca_12_ct_supp) # pretty but messy
 
-# Onto Scores!!!
+# Onto Scores!!! kmeans.... media groups...
+
+# Extract the scores for individuals
+scores_ct <- get_pca_ind(pca_12_ct)$coord
+scores_jhb <- get_pca_ind(pca_12_jhb)$coord
+
+# consider kmeans for clustering:
+
+# first consider number of clusters:
+# for cape town
+wss_12_ct <- vector()
+for(k in 3:20) {
+        temp <- kmeans(scores_ct,
+                       centers = k,
+                       nstart = 20,
+                       iter.max = 20)
+        wss_12_ct <- append(wss_12_ct,temp$tot.withinss)
+}
+
+plot(3:20, wss_12_ct, type = "b")
+
+# for johannesburg
+wss_12_jhb <- vector()
+for(k in 3:20) {
+        temp <- kmeans(scores_jhb,
+                       centers = k,
+                       nstart = 20,
+                       iter.max = 20)
+        wss_12_jhb <- append(wss_12_jhb,temp$tot.withinss)
+}
+
+plot(3:20, wss_12_jhb, type = "b")
+
+# will go with seven for cape town and 5 for johannesburg (pretty arb, but based on optimal factors...)
+kmeans_12_ct <- kmeans(scores_ct, centers = 7, nstart = 20)
+kmeans_12_jhb <- kmeans(scores_jhb, centers = 5, nstart = 20)
+
+# get cluster centers
+centers_12_ct <- kmeans_12_ct$centers
+centers_12_jhb <- kmeans_12_jhb$centers
+
+# append cluster centers to dataframe:
+categoricals_12_CT_mg <- data.frame(categoricals_12_CT, mediaGroup = as.factor(kmeans_12_ct$cluster))
+categoricals_12_JHB_mg <- data.frame(categoricals_12_JHB, mediaGroup = as.factor(kmeans_12_jhb$cluster))
+
+# consider relationship between clusters and dimensions (Q: is it worth doing this?? or should I stick with pca only)
+# use adjusted...for media groups
+pca_12_ct_supp_mg <- PCA(categoricals_12_CT_mg, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12,51), ncp = 7, graph = FALSE)
+pca_12_jhb_supp_mg <- PCA(categoricals_12_JHB_mg, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12,56 ), ncp = 5, graph = FALSE)
+
+# consider the relationship between dimension and media groups:
+
+test <- dimdesc(pca_12_ct_supp_mg, axes = c(1,2))
+test$Dim.2$category
+
+test_ct$Dim.3
+
+# consider some pictures as in previous...
+
+heatmap(centers_12_ct)
+heatmap(centers_12_jhb) # seems media groups 4 & 5 are both essentially Dim1..
 
 
-# Extract the results for individuals
-ind <- get_pca_ind(pca_12_ct)
-ind
-
-# Coordinates of individuals
-head(ind$coord)
-
-# Graph of individuals
-# 1. Use repel = TRUE to avoid overplotting
-# 2. Control automatically the color of individuals using the cos2
-# cos2 = the quality of the individuals on the factor map
-# Use points only
-# 3. Use gradient color
-fviz_pca_ind(pca_12_ct, col.ind = "cos2",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             repel = TRUE # Avoid text overlapping (slow if many points)
-)
+#cape town
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(categoricals_12_CT_mg$age ~ categoricals_12_CT_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+plot(categoricals_12_CT_mg$edu ~ categoricals_12_CT_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+plot(categoricals_12_CT_mg$hh_inc ~ categoricals_12_CT_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+plot(categoricals_12_CT_mg$lsm ~ categoricals_12_CT_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
 
 
-# # colouring individuals by group (iris data as example)
-# # Compute PCA on the iris data set
-# # The variable Species (index = 5) is removed
-# # before PCA analysis
-# iris.pca <- PCA(iris[,-5], graph = FALSE)
-# # Visualize
-# # Use habillage to specify groups for coloring
-fviz_pca_ind(pca_12_ct,
-             label = "none", # hide individual labels
-             habillage = set12_CT$edu, # color by groups
-             palette = c("#00AFBB", "#E7B800", "#FC4E07" ), # should add some more
-             addEllipses = TRUE # Concentration ellipses
-)
+# johannesburg
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(categoricals_12_JHB_mg$age ~ categoricals_12_JHB_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+plot(categoricals_12_JHB_mg$edu ~ categoricals_12_JHB_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+plot(categoricals_12_JHB_mg$hh_inc ~ categoricals_12_JHB_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+plot(categoricals_12_JHB_mg$lsm ~ categoricals_12_JHB_mg$mediaGroup, col = c(1,2,3,4,5,6,7))
+title("JHB", outer = TRUE, cex.main = 2.5)
+dev.off()
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# 
+# ##
+# cape town
+jpeg("groupVsDemog2_12_CT")
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(set12_CT$group ~ factor(set12_CT$race,labels = c("black", "coloured", "indian", "white")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_CT$group ~ factor(set12_CT$lang, labels = c("Afrikaans", "English", "Xhosa", "Other")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_CT$group ~ factor(set12_CT$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
+plot(set12_CT$group ~ set12_CT$cluster, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
 
-# working with visualising kmeans clusters
-# # 1. Loading and preparing data
-# data("USArrests")
-# df <- scale(USArrests)
-# # 2. Compute k-means
-# set.seed(123)
-# km.res <- kmeans(scale(USArrests), 4, nstart = 25)
+# johannesburg
+jpeg("groupVsDemog2_12_JHB")
+par(mfrow = c(2,3), oma = c(0,0,2,0))
+plot(set12_JHB$group ~ factor(set12_JHB$race,labels = c("black", "coloured", "indian", "white")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'race')
+plot(set12_JHB$group ~ set12_JHB$lang, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'language')
+plot(set12_JHB$group ~ factor(set12_JHB$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'LSM')
+plot(set12_JHB$group ~ set12_JHB$cluster, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'cluster')
+title("Johannesburg", outer = TRUE, cex.main = 2.5)
+dev.off()
 
-df <- set12[,c("newspapers","magazines","radio", "tv", "internet")] # my df, already scaled  
+# cape town
+jpeg("groupVsDemog3_12_CT")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_CT$group ~ set12_CT$lifestyle, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
+plot(set12_CT$group ~ set12_CT$attitudes, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
+plot(set12_CT$group ~ set12_CT$lifestages, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_CT$group ~ set12_CT$mar_status, col = c(1,2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+title("Cape Town", outer = TRUE, cex.main = 2.5)
+dev.off()
 
-set.seed(57)
-myTest_kmeans <- kmeans(df, centers = 4, nstart = 10) # changed to 4 just to stick to palette arg below..
+# johannesburg
+jpeg("groupVsDemog3_12_JHB")
+par(mfrow = c(2,3), oma = c(0,0,4,0))
+plot(set12_JHB$group ~ set12_JHB$lifestyle, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestyle')
+plot(set12_JHB$group ~ set12_JHB$attitudes, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'attitudes')
+plot(set12_JHB$group ~ set12_JHB$lifestages, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'lifestages')
+plot(set12_JHB$group ~ set12_JHB$mar_status, col = c(2,3,4,5,6,7,8), ylab = 'group', xlab = 'marital status')
+title("Johannesburg", outer = TRUE, cex.main = 2.5)
+dev.off()
+
+
+
 
 # 3. Visualize
 library("factoextra")
-fviz_cluster(myTest_kmeans, data = df,
-             palette = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07"),
+fviz_cluster(kmeans_ct, data = scale(scores_ct),
+             axes = c(1,2),
+             labelsize = 0,
+             palette = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07", "#2E9FDF"),
              ggtheme = theme_minimal(),
              main = "Partitioning Clustering Plot",
-             repel = TRUE # means you have to wait long time....
+             repel = FALSE # TRUE means you have to wait long time....
 )
 
 
@@ -1016,26 +1127,14 @@ test$betweenss
 # for cape town
 wss_12_ct <- vector()
 for(k in 3:20) {
-        temp <- kmeans(pca_12_ct$ind$coord,
+        temp <- kmeans(score,
                        centers = k,
                        nstart = 3,
                        iter.max = 20)
         wss_12_ct <- append(wss_12_ct,temp$tot.withinss)
 }
 
-# try from QuickR
-wss <- (nrow(pca_12_ct$ind$coord)-1)*sum(apply(pca_12_ct$ind$coord,2,var))
-for (i in 2:15) wss[i] <- sum(kmeans(pca_12_ct$ind$coord, 
-                                     centers=i)$withinss)
-plot(2:16, wss, type="b", xlab="Number of Clusters",
-     ylab="Within groups sum of squares")
-
-
-wss <- (nrow(pca_12_jhb$ind$coord)-1)*sum(apply(pca_12_jhb$ind$coord,2,var))
-for (i in 2:15) wss[i] <- sum(kmeans(pca_12_jhb$ind$coord, 
-                                     centers=i)$withinss)
-plot(1:15, wss, type="b", xlab="Number of Clusters",
-     ylab="Within groups sum of squares")
+plot(3:20, wss_12_ct)
 
 aggregate(kmean_ct$pamobject, by=list(fit$cluster),FUN=mean) ## to get mean... want to check how this compares with medoids...
 
@@ -1242,20 +1341,6 @@ fit_princomp$scores[1,1:7]
 
 
 
-
-# trying out FAMD:
-result2 <- FAMD(set12_CT[,22:60])
-summary(result2)
-plot(result2, habillage = 39, axes = 4:5)
-
-# very useful continuous variable description from factomine
-condes(set12_CT[,22:59],num.var = c(5))
-
-# dimension description function
-dimdesc(result2, axes = 4:5)
-
-# confidence intervals around categories
-plotellipses(result2, keepvar = c("cluster") , axes = 3:4, pch = 3, keepnames = FALSE, label = "none", level = 0.99)
 
 
 # some experimentation to make sure I fully grasp PCA first:
