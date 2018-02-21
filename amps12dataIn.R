@@ -43,7 +43,6 @@ names_dailies_12 <- names_print_12[1:22]
 names_biweeklies_12 <- names_print_12[23]
 names_weeklies_12 <- names_print_12[24:52]
 
-
 # # NBNB: Not community papers in 2012...
 # names_community_cape_town <- names_print[40:51]
 # names_community_restCape <- names_print[52:61]
@@ -86,15 +85,8 @@ saveRDS(thorough_12, "thorough_12.rds")
 
 print_engagement_12 <- issues_12 * thorough_12
 
-# replace nas with zero's: # function to replace NA's with 0 in dataframe x. consider also dplyr::replace_na
-# # # replace NAs with zeros
-for(i in 1: nrow(print_engagement_12)) {
-        for(j in 1: ncol(print_engagement_12)) {
-                if(is.na(print_engagement_12[i,j])){
-                        print_engagement_12[i,j] <- 0
-                }
-        }
-}
+# replace nas with zero's:
+print_engagement_12[is.na(print_engagement_12)] <- 0
 
 saveRDS(print_engagement_12, "print_engagement_12.rds")
 
