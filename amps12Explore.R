@@ -60,7 +60,7 @@ demographics_12$metro <- factor(demographics_12$metro, ordered = FALSE)
 demographics_12$lang <- factor(demographics_12$lang, ordered = FALSE)
 demographics_12$lifestages <- factor(demographics_12$lifestages, ordered = FALSE)
 demographics_12$mar_status <- factor(demographics_12$mar_status, ordered = FALSE)
-demographics_12$pers_inc <- factor(demographics_12$pers_inc, ordered = TRUE)
+# demographics_12$pers_inc <- factor(demographics_12$pers_inc, ordered = TRUE)
 
 # lsm
 demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(1,2), 1, demographics_12$lsm)
@@ -68,7 +68,7 @@ demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(3,4), 2, demographics_1
 demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(5,6), 3, demographics_12$lsm)
 demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(7,8), 4, demographics_12$lsm)
 demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(9,10), 5, demographics_12$lsm)
-demographics_12$lsm <- factor(demographics_12$lsm, ordered = FALSE)
+demographics_12$lsm <- factor(demographics_12$lsm, ordered = TRUE)
 
 demographics_12$lifestyle <- factor(demographics_12$lifestyle, ordered = FALSE)
 demographics_12$attitudes <- factor(demographics_12$attitudes, ordered = FALSE)
@@ -113,7 +113,10 @@ png('kmeansTypePlot2012.png')
 plot(c(3,4,5,6,7,8,9,10,11,12), wss, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
 dev.off()
 
-kmeans12 <- kmeans(set12[,c("newspapers","magazines","radio", "tv", "internet")], centers = 5)
+set.seed(56)
+kmeans12 <- kmeans(set12[,c("newspapers","magazines","radio", "tv", "internet")],
+                   centers = 5,
+                   nstart = 20)
 table(kmeans12$cluster) #
 
 # add cluster labels to the dataset
