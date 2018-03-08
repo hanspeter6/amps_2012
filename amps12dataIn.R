@@ -298,6 +298,9 @@ media_vehicles_12 <- data.frame(cbind(qn = print_12$qn,
 saveRDS(media_type_12, 'media_type_12.rds')
 saveRDS(media_vehicles_12, 'media_vehicles_12.rds')
 
+media_type_12 <- readRDS('media_type_12.rds')
+media_vehicles_12 <- readRDS('media_vehicles_12.rds')
+
 ## 4th Demographics Set (see notes for descriptions)
 
 age <- personal_12[,'ca56co34']
@@ -316,33 +319,50 @@ race <- demogrs_12[,'ca91co51b']
 province <- demogrs_12[,'ca91co56']
 metro1 <- demogrs_12[,'ca91co57']
 metro2 <- demogrs_12[,'ca91co58'] + 9
+
+
 metro <- rowSums(cbind(metro1,
                        metro2), na.rm = TRUE)
-#as in '95 need to sort out double count of Soweto....
-# seems that all the 19s are the sum of 7 & 12s (ie, Soweto)
-# # code as such, ie all 19s are actually 12s (this also eliminates double count in the 7s ( so exlude Soweto)) >NB double check this is same in '95!!!
-metro <- ifelse(metro == 19, 12, metro)
+
+# collect and code into single metro set:
+#0 = no metro
+#1 Cape Town
+#2 Cape Town Fringe Area
+#3 Port Elizabeth/Uitenhage
+#4 East London
+#5 Durban
+#6 Bloemfontein
+#7 Greater Johannesburg
+#8 Reef
+#9 Pretoria
+#10 Kimberley
+##11 Pietermaritzburg
+##12 Vaal
+
+metro <- ifelse(metro == 19, 7, metro) # add soweto back to greater jhb
+metro <- ifelse(metro == 13, 12, metro) # change code of Vaal
+
 lang <- demogrs_12[,'ca91co75'] + 1 # change 0 to 1, so add one to all
 lifestages <- demogrs_12[,'ca91co77']
 mar_status <- personal_12[,'ca56co09']
-pers_inc1 <- personal_12[,'ca57co61']
-pers_inc2 <- personal_12[,'ca57co62'] + 10
-pers_inc3 <- personal_12[,'ca57co63'] + 20
-pers_inc4 <- personal_12[,'ca57co64'] + 30
-for(i in 1: length(pers_inc4)) {
-        if(!is.na(pers_inc4[i])) {
-                if(pers_inc4[i] == 31) {
-                        pers_inc4[i] <- 0
-                }
-                if(pers_inc4[i] == 32) {
-                        pers_inc4[i] <- 60
-                }
-        }
-}
-pers_inc <- rowSums(cbind(pers_inc1,
-                          pers_inc2,
-                          pers_inc3,
-                          pers_inc4), na.rm = TRUE)
+# pers_inc1 <- personal_12[,'ca57co61']
+# pers_inc2 <- personal_12[,'ca57co62'] + 10
+# pers_inc3 <- personal_12[,'ca57co63'] + 20
+# pers_inc4 <- personal_12[,'ca57co64'] + 30
+# for(i in 1: length(pers_inc4)) {
+#         if(!is.na(pers_inc4[i])) {
+#                 if(pers_inc4[i] == 31) {
+#                         pers_inc4[i] <- 0
+#                 }
+#                 if(pers_inc4[i] == 32) {
+#                         pers_inc4[i] <- 60
+#                 }
+#         }
+# }
+# pers_inc <- rowSums(cbind(pers_inc1,
+#                           pers_inc2,
+#                           pers_inc3,
+#                           pers_inc4), na.rm = TRUE)
 lsm <- lsm_12[,'ca91co64']
 lsm <- ifelse(lsm == 0,10,lsm)
 
@@ -353,9 +373,9 @@ attitudesB <- lsm_12[,'ca67co10_lsm']
 attitudesA <- ifelse(is.na(attitudesA), 0, attitudesA)
 attitudesB <- ifelse(is.na(attitudesB), 0, attitudesB)
 attitudes <- attitudesA + attitudesB
-attitudes <- ifelse(attitudes == 8, 4, attitudes)
+attitudes <- ifelse(attitudes == 8, 4, attitudes) # distant rooted
 attitudes <- ifelse(attitudes == 5 | attitudes == 6, attitudes + 1, attitudes)
-attitudes <- ifelse(attitudes == 9, 5, attitudes)
+attitudes <- ifelse(attitudes == 9, 5, attitudes) # distant ...
 table(attitudes) # check
 
 
@@ -371,7 +391,7 @@ demographics_12 <- data.frame(qn = print_12$qn,
                               lang,
                               lifestages,
                               mar_status,
-                              pers_inc,
+                              # pers_inc,
                               lsm,
                               lifestyle,
                               attitudes)

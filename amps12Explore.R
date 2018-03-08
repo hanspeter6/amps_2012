@@ -889,13 +889,92 @@ categoricals_12_JHB <- readRDS("categoricals_12_JHB.rds")
 pca_12_ct_supp <- PCA(categoricals_12_CT, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12), ncp = 7, graph = FALSE)
 pca_12_jhb_supp <- PCA(categoricals_12_JHB, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12), ncp = 5, graph = FALSE)
 
+# getting all the dimension descriptions
+dimdesc_12_ct <- dimdesc(pca_12_ct_supp, c(1:7), proba = 1)
 
-test2 <- dimdesc(pca_12_ct_supp)
-test3 <- test2$Dim.1$category
-test4 <- as.data.frame(test3)
-test5 <- test4 %>%
-        mutate(vehicle = rownames(test3)) %>%
-        arrange(desc(Estimate))
+# categorical supplementaries per dimension... need to explain and interpret "Estimate"
+cat_coord_12_ct <- list()
+for(i in 1:7) {
+        temp1 <- as.matrix(dimdesc_12_ct[[i]]$category)[c(1:5, (nrow(dimdesc_12_ct[[i]]$category) - 4):(nrow(dimdesc_12_ct[[i]]$category))),]
+        name <- paste0("Dim", 1)
+        cat_coord_12_ct[[i]] <- data.frame(est = round(temp1[,1], 2))
+
+}
+
+# as example, print some as tables to import... will figure out how to do this properly later.
+
+write.table(cat_coord_12_ct[[1]], file = "cat_dim1_ct.csv")
+write.table(cat_coord_12_ct[[2]], file = "cat_dim2_ct.csv")
+write.table(cat_coord_12_ct[[3]], file = "cat_dim3_ct.csv")
+
+
+# print to file for graphics:
+tab_ct_cat <- tableGrob(cat_coord_12_ct[[1]], theme = ttheme_default(base_size = 10)) # table
+
+grid.newpage()
+h_cont_ct <- grobHeight(tab_ct_cont)
+w_cont_ct <- grobWidth(tab_ct_cont)
+title_tab_cont_ct <- textGrob('', y=unit(0.5,"npc") + 0.5*h_cont_ct, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cont_ct<- gTree(children = gList(tab_ct_cont, title_tab_cont_ct))
+grid.draw(tab_ct_cat) # check
+
+
+        
+
+# continuous supplementaries per dimension...explain difference... blah blah
+# cape town:
+
+cont_corrs_12_ct <- matrix(0, nrow = 4, ncol = 0)
+for(i in 1:7) {
+        temp1 <- as.matrix(dimdesc_12_ct[[i]]$quanti)
+        temp2 <- temp1[which(rownames(temp1) %in% c("age", "edu", "hh_inc", "lsm")),]
+        cont_corrs_12_ct <- as.data.frame(round(cbind(cont_corrs_12_ct, temp2), 2))
+}
+names(cont_corrs_12_ct) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal", "Dim6", "pVal", "Dim7", "pVal" )
+
+# print to file for graphic:
+
+tab_ct_cont <- tableGrob(cont_corrs_12_ct, theme = ttheme_default(base_size = 10)) # table
+
+grid.newpage()
+h_cont_ct <- grobHeight(tab_ct_cont)
+w_cont_ct <- grobWidth(tab_ct_cont)
+title_tab_cont_ct <- textGrob('', y=unit(0.5,"npc") + 0.5*h_cont_ct, 
+                        vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cont_ct<- gTree(children = gList(tab_ct_cont, title_tab_cont_ct))
+grid.draw(gt_cont_ct) # check
+
+# Johannesburg:
+dimdesc_12_jhb <- dimdesc(pca_12_jhb_supp, c(1:5), proba = 1)
+cont_corrs_12_jhb <- matrix(0, nrow = 4, ncol = 0)
+for(i in 1:5) {
+        temp1 <- as.matrix(dimdesc_12_jhb[[i]]$quanti)
+        temp2 <- temp1[which(rownames(temp1) %in% c("age", "edu", "hh_inc", "lsm")),]
+        cont_corrs_12_jhb <- as.data.frame(round(cbind(cont_corrs_12_jhb, temp2), 2))
+}
+names(cont_corrs_12_jhb) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal" )
+
+# print to file for graphic:
+tab_jhb_cont <- tableGrob(cont_corrs_12_jhb, theme = ttheme_default(base_size = 10)) # table
+
+grid.newpage()
+h_cont_jhb <- grobHeight(tab_jhb_cont)
+w_cont_jhb <- grobWidth(tab_jhb_cont)
+title_tab_cont_jhb <- textGrob('', y=unit(0.5,"npc") + 0.5*h_cont_jhb, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cont_jhb  <- gTree(children = gList(tab_jhb_cont, title_tab_cont_jhb))
+grid.draw(gt_cont_jhb) # check
+
+# arrange single output
+ml_cont_ct_jhb <- marrangeGrob(list(gt_cont_ct,gt_cont_jhb), nrow=2, ncol=1,
+                              top = '\n\nCapeTown (7 Dimensions) \nand\n Johannesburg (5 Dimensions)')
+
+# print to graphic
+jpeg("cont_12_ct_jhb.jpeg")
+ml_cont_ct_jhb
+dev.off()
+
 
 # visualising all the quantitative (including supplementary vars)
 fviz_pca_var(pca_12_ct_supp,
@@ -926,11 +1005,13 @@ fviz_contrib(pca_12_ct, choice = "var", axes = 2, top = 10)
 # try ellipses again:
 plotellipses(pca_12_ct_supp) # pretty but messy
 
-# Onto Scores!!! kmeans.... media groups...
+# Onto SCORES!!! kmeans.... media groups...
 
 # Extract the scores for individuals
 scores_ct <- get_pca_ind(pca_12_ct)$coord
 scores_jhb <- get_pca_ind(pca_12_jhb)$coord
+
+
 
 # consider kmeans for clustering:
 
