@@ -84,24 +84,34 @@ saveRDS(thorough_12, "thorough_12.rds")
 # create single print dataset:
 
 print_engagement_12 <- issues_12 * thorough_12
+print_engagement_12_simple <- issues_12
 
 # replace nas with zero's:
 print_engagement_12[is.na(print_engagement_12)] <- 0
+print_engagement_12_simple[is.na(print_engagement_12_simple)] <- 0
 
 saveRDS(print_engagement_12, "print_engagement_12.rds")
+saveRDS(print_engagement_12_simple, "print_engagement_12_simple.rds")
 
 print_engagement_12 <- readRDS("print_engagement_12.rds")
+print_engagement_12_simple <- readRDS("print_engagement_12_simple.rds")
 
 newspapers_engagement_12 <- print_engagement_12[,c(1:52,68,69)]
 magazines_engagement_12 <- print_engagement_12[,c(53:67,70:172)]
+newspapers_engagement_12_simple <- print_engagement_12_simple[,c(1:52,68,69)]
+magazines_engagement_12_simple <- print_engagement_12_simple[,c(53:67,70:172)]
 
 saveRDS(newspapers_engagement_12, "newspapers_engagement_12.rds")
 saveRDS(magazines_engagement_12, "magazines_engagement_12.rds")
+saveRDS(newspapers_engagement_12_simple, "newspapers_engagement_12_simple.rds")
+saveRDS(magazines_engagement_12_simple, "magazines_engagement_12_simple.rds")
 
 magazines_engagement_12 <- readRDS("magazines_engagement_12.rds")
 newspapers_engagement_12 <- readRDS("newspapers_engagement_12.rds")
+magazines_engagement_12_simple <- readRDS("magazines_engagement_12_simple.rds")
+newspapers_engagement_12_simple <- readRDS("newspapers_engagement_12_simple.rds")
 
-## 2nd Electronic Media Set
+## 2nd Electronic Media Set ( no "other")
 # RADIO
 
 names_radio_12_4w <- electr_12_labels %>%
@@ -171,7 +181,7 @@ names_tv_12 <- electr_12_labels %>%
 
 saveRDS(names_tv_12, "names_tv_12.rds")
 names_tv_12 <- readRDS("names_tv_12.rds")
-
+# fix(names_tv_12)
 # want to isolate only past 4 weeks and get rid of ("UNSURE", and "no TV")
 tv4weeks_12 <- electr_12[,c('ca45co30_1',
                             'ca45co30_2',
@@ -184,7 +194,8 @@ tv4weeks_12 <- electr_12[,c('ca45co30_1',
                             'ca45co30_9',
                             'ca45co31_0',
                             'ca45co72_3',
-                            'ca45co72_8'
+                            'ca45co72_8',
+                            'ca45co31_4'
                             )] 
 
 # want to isolate only past 7 days...
@@ -199,10 +210,11 @@ tv7days_12 <- electr_12[,c('ca45co32_1',
                            'ca45co32_9',
                            'ca45co33_0',
                            'ca45co74_3',
-                           'ca45co74_8'
+                           'ca45co74_8',
+                           'ca45co33_4'
                            )] 
 
-# want to isolate only yesterday...(indexes w.r.t 4weeks that are missing here: 7, 10)
+# want to isolate only yesterday...(indexes w.r.t 4weeks that are missing here: 7, 10, 13 (other))
 tvYesterday_12 <- electr_12[,c('ca45co34_1',
                                'ca45co34_2',
                                'ca45co34_3',
@@ -218,7 +230,7 @@ tvYesterday_12 <- electr_12[,c('ca45co34_1',
 # combining into a tv engagement dataset (using tv4weeks_12 as basis):
 
 tv_engagement_12 <- tv4weeks_12 + tv7days_12
-tv_engagement_12[,-c(7,10)] <- tv_engagement_12[,-c(7,10)] + tvYesterday_12
+tv_engagement_12[,-c(7,10,13)] <- tv_engagement_12[,-c(7,10,13)] + tvYesterday_12
 names(tv_engagement_12) <- names_tv_12
 
 saveRDS(tv_engagement_12, "tv_engagement_12.rds")
@@ -231,13 +243,7 @@ tv_engagement_12 <- readRDS("tv_engagement_12.rds")
 internet_level1 <- internet_12[,str_detect(names(internet_12), 'ca49co(45)|(46)|(47)|(48)')]
 
 #change all 2 = "No" and NA's' to 0
-for(i in 1: nrow(internet_level1)) {
-        for(j in 1: ncol(internet_level1)) {
-                if(is.na(internet_level1[i,j]) | internet_level1[i,j] == 2){
-                        internet_level1[i,j] <- 0
-                }
-        }
-}
+internet_level1 <- data.frame(ifelse(is.na(internet_level1) | internet_level1 == 2, 0, 1))
 
 internet_level1 <- rowSums(internet_level1)
 
@@ -267,10 +273,13 @@ names(internet_level2) <- c('int_search',
 
 ## create single dataframe for internet multiplying internet_level1 with sum of internet_level2:
 internet_engagement_12 <- internet_level2  * internet_level1
+internet_engagement_12_simple <- internet_level1
 
 saveRDS(internet_engagement_12, "internet_engagement_12.rds")
+saveRDS(internet_engagement_12_simple, "internet_engagement_12_simple.rds")
 
 internet_engagement_12 <- readRDS("internet_engagement_12.rds")
+internet_engagement_12_simple <- readRDS("internet_engagement_12_simple.rds")
 
 ## create single dataframe for media12, including total_engagement columns (consider using media groupings .. follow up on this!)
 
@@ -281,7 +290,21 @@ media_type_12 <- data.frame(cbind(qn = print_12$qn,
                                   scale(rowSums(radio_engagement_12)),
                                   scale(rowSums(tv_engagement_12)),
                                   scale(rowSums(internet_engagement_12))))
+
+media_type_12_simple <- data.frame(cbind(qn = print_12$qn,
+                                  scale(rowSums(newspapers_engagement_12_simple)),
+                                  scale(rowSums(magazines_engagement_12_simple)),
+                                  scale(rowSums(radio_engagement_12)),
+                                  scale(rowSums(tv_engagement_12)),
+                                  scale(internet_engagement_12_simple)))
 names(media_type_12) <- c("qn",
+                          "newspapers",
+                          "magazines",
+                          "radio",
+                          "tv",
+                          "internet")
+
+names(media_type_12_simple) <- c("qn",
                           "newspapers",
                           "magazines",
                           "radio",
@@ -294,12 +317,22 @@ media_vehicles_12 <- data.frame(cbind(qn = print_12$qn,
                                       radio_engagement_12,
                                       tv_engagement_12,
                                       internet_engagement_12))
+media_vehicles_12_simple <- data.frame(cbind(qn = print_12$qn,
+                                      newspapers_engagement_12_simple,
+                                      magazines_engagement_12_simple,
+                                      radio_engagement_12,
+                                      tv_engagement_12,
+                                      internet_engagement_12_simple))
 
 saveRDS(media_type_12, 'media_type_12.rds')
 saveRDS(media_vehicles_12, 'media_vehicles_12.rds')
+saveRDS(media_type_12_simple, 'media_type_12_simple.rds')
+saveRDS(media_vehicles_12_simple, 'media_vehicles_12_simple.rds')
 
 media_type_12 <- readRDS('media_type_12.rds')
 media_vehicles_12 <- readRDS('media_vehicles_12.rds')
+media_type_12_simple <- readRDS('media_type_12_simple.rds')
+media_vehicles_12_simple <- readRDS('media_vehicles_12_simple.rds')
 
 ## 4th Demographics Set (see notes for descriptions)
 
