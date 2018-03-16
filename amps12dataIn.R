@@ -282,7 +282,6 @@ internet_engagement_12 <- readRDS("internet_engagement_12.rds")
 internet_engagement_12_simple <- readRDS("internet_engagement_12_simple.rds")
 
 ## create single dataframe for media12, including total_engagement columns (consider using media groupings .. follow up on this!)
-
 # Level 1: Type
 media_type_12 <- data.frame(cbind(qn = print_12$qn,
                                   scale(rowSums(newspapers_engagement_12)),
@@ -290,13 +289,6 @@ media_type_12 <- data.frame(cbind(qn = print_12$qn,
                                   scale(rowSums(radio_engagement_12)),
                                   scale(rowSums(tv_engagement_12)),
                                   scale(rowSums(internet_engagement_12))))
-
-media_type_12_simple <- data.frame(cbind(qn = print_12$qn,
-                                  scale(rowSums(newspapers_engagement_12_simple)),
-                                  scale(rowSums(magazines_engagement_12_simple)),
-                                  scale(rowSums(radio_engagement_12)),
-                                  scale(rowSums(tv_engagement_12)),
-                                  scale(internet_engagement_12_simple)))
 names(media_type_12) <- c("qn",
                           "newspapers",
                           "magazines",
@@ -304,12 +296,25 @@ names(media_type_12) <- c("qn",
                           "tv",
                           "internet")
 
+media_type_12 <- media_type_12 %>%
+        mutate(all = as.vector(scale(newspapers + magazines + radio + tv + internet))) 
+
+media_type_12_simple <- data.frame(cbind(qn = print_12$qn,
+                                  scale(rowSums(newspapers_engagement_12_simple)),
+                                  scale(rowSums(magazines_engagement_12_simple)),
+                                  scale(rowSums(radio_engagement_12)),
+                                  scale(rowSums(tv_engagement_12)),
+                                  scale(internet_engagement_12_simple)))
 names(media_type_12_simple) <- c("qn",
                           "newspapers",
                           "magazines",
                           "radio",
                           "tv",
                           "internet")
+
+media_type_12_simple <- media_type_12_simple %>%
+        mutate(all = as.vector(scale(newspapers + magazines + radio + tv + internet))) 
+
 # Level 2: Vehicles
 media_vehicles_12 <- data.frame(cbind(qn = print_12$qn,
                                       newspapers_engagement_12,
@@ -378,24 +383,7 @@ metro <- ifelse(metro == 13, 12, metro) # change code of Vaal
 lang <- demogrs_12[,'ca91co75'] + 1 # change 0 to 1, so add one to all
 lifestages <- demogrs_12[,'ca91co77']
 mar_status <- personal_12[,'ca56co09']
-# pers_inc1 <- personal_12[,'ca57co61']
-# pers_inc2 <- personal_12[,'ca57co62'] + 10
-# pers_inc3 <- personal_12[,'ca57co63'] + 20
-# pers_inc4 <- personal_12[,'ca57co64'] + 30
-# for(i in 1: length(pers_inc4)) {
-#         if(!is.na(pers_inc4[i])) {
-#                 if(pers_inc4[i] == 31) {
-#                         pers_inc4[i] <- 0
-#                 }
-#                 if(pers_inc4[i] == 32) {
-#                         pers_inc4[i] <- 60
-#                 }
-#         }
-# }
-# pers_inc <- rowSums(cbind(pers_inc1,
-#                           pers_inc2,
-#                           pers_inc3,
-#                           pers_inc4), na.rm = TRUE)
+
 lsm <- lsm_12[,'ca91co64']
 lsm <- ifelse(lsm == 0,10,lsm)
 
@@ -424,7 +412,6 @@ demographics_12 <- data.frame(qn = print_12$qn,
                               lang,
                               lifestages,
                               mar_status,
-                              # pers_inc,
                               lsm,
                               lifestyle,
                               attitudes)
