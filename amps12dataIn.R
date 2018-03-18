@@ -284,11 +284,11 @@ internet_engagement_12_simple <- readRDS("internet_engagement_12_simple.rds")
 ## create single dataframe for media12, including total_engagement columns (consider using media groupings .. follow up on this!)
 # Level 1: Type
 media_type_12 <- data.frame(cbind(qn = print_12$qn,
-                                  scale(rowSums(newspapers_engagement_12)),
-                                  scale(rowSums(magazines_engagement_12)),
-                                  scale(rowSums(radio_engagement_12)),
-                                  scale(rowSums(tv_engagement_12)),
-                                  scale(rowSums(internet_engagement_12))))
+                                  rowSums(newspapers_engagement_12),
+                                  rowSums(magazines_engagement_12),
+                                  rowSums(radio_engagement_12),
+                                  rowSums(tv_engagement_12),
+                                  rowSums(internet_engagement_12)))
 names(media_type_12) <- c("qn",
                           "newspapers",
                           "magazines",
@@ -297,14 +297,14 @@ names(media_type_12) <- c("qn",
                           "internet")
 
 media_type_12 <- media_type_12 %>%
-        mutate(all = as.vector(scale(newspapers + magazines + radio + tv + internet))) 
+        mutate(all = as.vector(newspapers + magazines + radio + tv + internet))
 
 media_type_12_simple <- data.frame(cbind(qn = print_12$qn,
-                                  scale(rowSums(newspapers_engagement_12_simple)),
-                                  scale(rowSums(magazines_engagement_12_simple)),
-                                  scale(rowSums(radio_engagement_12)),
-                                  scale(rowSums(tv_engagement_12)),
-                                  scale(internet_engagement_12_simple)))
+                                  rowSums(newspapers_engagement_12_simple),
+                                  rowSums(magazines_engagement_12_simple),
+                                  rowSums(radio_engagement_12),
+                                  rowSums(tv_engagement_12),
+                                  internet_engagement_12_simple))
 names(media_type_12_simple) <- c("qn",
                           "newspapers",
                           "magazines",
@@ -313,7 +313,7 @@ names(media_type_12_simple) <- c("qn",
                           "internet")
 
 media_type_12_simple <- media_type_12_simple %>%
-        mutate(all = as.vector(scale(newspapers + magazines + radio + tv + internet))) 
+        mutate(all = as.vector(newspapers + magazines + radio + tv + internet))
 
 # Level 2: Vehicles
 media_vehicles_12 <- data.frame(cbind(qn = print_12$qn,
@@ -417,7 +417,84 @@ demographics_12 <- data.frame(qn = print_12$qn,
                               attitudes)
 
 
-# save as
+#reducing levels of categorical variables and setting factor types for demographics:
+# age:
+
+demographics_12$age <- ifelse(demographics_12$age %in% c(1,2), 1, demographics_12$age)
+demographics_12$age <- ifelse(demographics_12$age %in% c(3,4), 2, demographics_12$age)
+demographics_12$age <- ifelse(demographics_12$age %in% c(5,6), 3, demographics_12$age)
+demographics_12$age <- ifelse(demographics_12$age %in% c(7,8), 4, demographics_12$age)
+demographics_12$age <- factor(demographics_12$age, ordered = TRUE)
+
+# sex:
+demographics_12$sex <- factor(demographics_12$sex, ordered = FALSE)
+
+#edu:
+demographics_12$edu <- ifelse(demographics_12$edu %in% c(1,2,3,4), 1, demographics_12$edu)
+demographics_12$edu <- ifelse(demographics_12$edu %in% c(5), 2, demographics_12$edu)
+demographics_12$edu <- ifelse(demographics_12$edu %in% c(6,7,8), 3, demographics_12$edu)
+demographics_12$edu <- factor(demographics_12$edu, ordered = TRUE)
+
+#hh_inc
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(1,2,3,4), 1, demographics_12$hh_inc)
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(5,6), 2, demographics_12$hh_inc)
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(7), 3, demographics_12$hh_inc)
+demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(8), 4, demographics_12$hh_inc)
+demographics_12$hh_inc <- factor(demographics_12$hh_inc, ordered = TRUE)
+
+demographics_12$race <- factor(demographics_12$race, ordered = FALSE)
+demographics_12$province <- factor(demographics_12$province, ordered = FALSE)
+demographics_12$metro <- factor(demographics_12$metro, ordered = FALSE)
+demographics_12$lang <- factor(demographics_12$lang, ordered = FALSE)
+demographics_12$lifestages <- factor(demographics_12$lifestages, ordered = FALSE)
+demographics_12$mar_status <- factor(demographics_12$mar_status, ordered = FALSE)
+
+# lsm
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(1,2), 1, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(3,4), 2, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(5,6), 3, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(7,8), 4, demographics_12$lsm)
+demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(9,10), 5, demographics_12$lsm)
+demographics_12$lsm <- factor(demographics_12$lsm, ordered = TRUE)
+
+demographics_12$lifestyle <- factor(demographics_12$lifestyle, ordered = FALSE)
+demographics_12$attitudes <- factor(demographics_12$attitudes, ordered = FALSE)
 
 saveRDS(demographics_12, "demographics_12.rds")
 demographics_12 <- readRDS("demographics_12.rds")
+
+# read datafiles again (if necessary)
+magazines_engagement_12 <- readRDS("magazines_engagement_12.rds")
+magazines_engagement_12_simple <- readRDS("magazines_engagement_12_simple.rds")
+newspapers_engagement_12 <- readRDS("newspapers_engagement_12.rds")
+newspapers_engagement_12_simple <- readRDS("newspapers_engagement_12_simple.rds")
+radio_engagement_12 <- readRDS("radio_engagement_12.rds")
+tv_engagement_12 <- readRDS("tv_engagement_12.rds")
+internet_engagement_12 <- readRDS("internet_engagement_12.rds")
+internet_engagement_12_simple <- readRDS("internet_engagement_12_simple.rds")
+
+media_type_12 <- readRDS("media_type_12.rds")
+media_vehicles_12 <- readRDS("media_vehicles_12.rds")
+media_type_12_simple <- readRDS("media_type_12_simple.rds")
+media_vehicles_12_simple <- readRDS("media_vehicles_12_simple.rds")
+
+demographics_12 <- readRDS("demographics_12.rds")
+
+# #create single dataset minus non metropolitans
+set12 <- demographics_12 %>%
+        left_join(media_type_12) %>%
+        left_join(media_vehicles_12) %>%
+        filter(metro != 0)
+
+set12_simple <- demographics_12 %>%
+        left_join(media_type_12_simple) %>%
+        left_join(media_vehicles_12_simple) %>%
+        filter(metro != 0)
+
+# scale media type and media vehicles
+set12[,16:309] <- scale(set12[,16:309])
+set12_simple[,16:304] <- scale(set12_simple[,16:304])
+
+# save them:
+saveRDS(set12, "set12.rds")
+saveRDS(set12_simple, "set12_simple.rds")

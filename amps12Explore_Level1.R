@@ -15,80 +15,13 @@ library(nFactors)
 library(FactoMineR)
 library(factoextra)
 library(gridExtra)
+library(ggplot2)
 
-# read datafiles
-magazines_engagement_12 <- readRDS("magazines_engagement_12.rds")
-magazines_engagement_12_simple <- readRDS("magazines_engagement_12_simple.rds")
-newspapers_engagement_12 <- readRDS("newspapers_engagement_12.rds")
-newspapers_engagement_12_simple <- readRDS("newspapers_engagement_12_simple.rds")
-radio_engagement_12 <- readRDS("radio_engagement_12.rds")
-tv_engagement_12 <- readRDS("tv_engagement_12.rds")
-internet_engagement_12 <- readRDS("internet_engagement_12.rds")
-internet_engagement_12_simple <- readRDS("internet_engagement_12_simple.rds")
-
-media_type_12 <- readRDS("media_type_12.rds")
-media_vehicles_12 <- readRDS("media_vehicles_12.rds")
-media_type_12_simple <- readRDS("media_type_12_simple.rds")
-media_vehicles_12_simple <- readRDS("media_vehicles_12_simple.rds")
-
-demographics_12 <- readRDS("demographics_12.rds")
-
-#reducing levels of categorical variables and setting factor types for demographics:
-
-# age:
-demographics_12$age <- ifelse(demographics_12$age %in% c(1,2), 1, demographics_12$age)
-demographics_12$age <- ifelse(demographics_12$age %in% c(3,4), 2, demographics_12$age)
-demographics_12$age <- ifelse(demographics_12$age %in% c(5,6), 3, demographics_12$age)
-demographics_12$age <- ifelse(demographics_12$age %in% c(7,8), 4, demographics_12$age)
-demographics_12$age <- factor(demographics_12$age, ordered = TRUE)
-
-# sex:
-demographics_12$sex <- factor(demographics_12$sex, ordered = FALSE)
-
-#edu:
-demographics_12$edu <- ifelse(demographics_12$edu %in% c(1,2,3,4), 1, demographics_12$edu)
-demographics_12$edu <- ifelse(demographics_12$edu %in% c(5), 2, demographics_12$edu)
-demographics_12$edu <- ifelse(demographics_12$edu %in% c(6,7,8), 3, demographics_12$edu)
-demographics_12$edu <- factor(demographics_12$edu, ordered = TRUE)
-
-#hh_inc
-demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(1,2,3,4), 1, demographics_12$hh_inc)
-demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(5,6), 2, demographics_12$hh_inc)
-demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(7), 3, demographics_12$hh_inc)
-demographics_12$hh_inc <- ifelse(demographics_12$hh_inc %in% c(8), 4, demographics_12$hh_inc)
-demographics_12$hh_inc <- factor(demographics_12$hh_inc, ordered = TRUE)
-
-demographics_12$race <- factor(demographics_12$race, ordered = FALSE)
-demographics_12$province <- factor(demographics_12$province, ordered = FALSE)
-demographics_12$metro <- factor(demographics_12$metro, ordered = FALSE)
-demographics_12$lang <- factor(demographics_12$lang, ordered = FALSE)
-demographics_12$lifestages <- factor(demographics_12$lifestages, ordered = FALSE)
-demographics_12$mar_status <- factor(demographics_12$mar_status, ordered = FALSE)
-
-# lsm
-demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(1,2), 1, demographics_12$lsm)
-demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(3,4), 2, demographics_12$lsm)
-demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(5,6), 3, demographics_12$lsm)
-demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(7,8), 4, demographics_12$lsm)
-demographics_12$lsm <- ifelse(demographics_12$lsm %in% c(9,10), 5, demographics_12$lsm)
-demographics_12$lsm <- factor(demographics_12$lsm, ordered = TRUE)
-
-demographics_12$lifestyle <- factor(demographics_12$lifestyle, ordered = FALSE)
-demographics_12$attitudes <- factor(demographics_12$attitudes, ordered = FALSE)
-
-# #create single dataset minus non metropolitans
-set12 <- demographics_12 %>%
-        left_join(media_type_12) %>%
-        left_join(media_vehicles_12) %>%
-        filter(metro != 0)
-
-set12_simple <- demographics_12 %>%
-        left_join(media_type_12_simple) %>%
-        left_join(media_vehicles_12_simple) %>%
-        filter(metro != 0)
+#  read in datasets
+set12 <- readRDS("set12.rds")
+set12_simple <- readRDS("set12_simple.rds")
 
 # consider some correlations
-
 png('corTypePlot2012.png')
 corrplot(cor(set12[,c("newspapers","magazines","radio", "tv", "internet")]),
          method = "pie",
@@ -120,23 +53,97 @@ kmeans12 <- kmeans(set12[,c("newspapers","magazines","radio", "tv", "internet","
                    centers = 4,
                    nstart = 20)
 
-set.seed(1)
+set.seed(56)
 kmeans12_simple <- kmeans(set12_simple[,c("newspapers","magazines","radio", "tv", "internet", "all")],
-                   centers = 5,
+                   centers = 4,
                    nstart = 20)
 
 # add cluster labels to the dataset
-set12 <- set12 %>%
+set12c <- set12 %>%
         mutate(cluster = factor(kmeans12$cluster))
 
-set12_simple <- set12_simple %>%
+set12c_simple <- set12_simple %>%
         mutate(cluster = factor(kmeans12_simple$cluster))
 
-saveRDS(set12, "set12.rds")
-saveRDS(set12_simple, "set12_simple.rds")
+saveRDS(set12c, "set12c.rds")
+saveRDS(set12c_simple, "set12c_simple.rds")
 
-set12 <- readRDS("set12.rds")
-set12_simple <- readRDS("set12_simple.rds")
+set12c <- readRDS("set12c.rds")
+set12c_simple <- readRDS("set12c_simple.rds")
+
+# some plots
+# boxplots of clusters and media types
+p1 <- ggplot(set12c, aes(cluster, all, fill = cluster)) +
+        geom_boxplot() +
+        guides(fill = FALSE) +
+        labs(title = "all")
+p2 <- ggplot(set12c, aes(cluster, newspapers, fill = cluster)) +
+        geom_boxplot() +
+        guides(fill = FALSE) +
+        labs(title = "newspapers")
+p3 <- ggplot(set12c, aes(cluster, magazines, fill = cluster)) +
+        geom_boxplot() +
+        guides(fill = FALSE) +
+        labs(title = "magazines")
+p4 <- ggplot(set12c, aes(cluster, radio, fill = cluster)) +
+        geom_boxplot() +
+        guides(fill = FALSE) +
+        labs(title = "radio")
+p5 <- ggplot(set12c, aes(cluster, tv, fill = cluster)) +
+        geom_boxplot() +
+        guides(fill = FALSE) +
+        labs(title = "tv")
+p6 <- ggplot(set12c, aes(cluster, internet, fill = cluster)) +
+        geom_boxplot() +
+        guides(fill = FALSE) +
+        labs(title = "internet")
+
+jpeg('typeBoxPlots_12.jpeg', quality = 100, type = "cairo")
+grid.arrange(p1, p2, p3, p4, p5, p6,  ncol=3, nrow = 2)
+dev.off()
+
+# try to make sense of demographics
+d1 <- ggplot(set12c, aes(race, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "race", y = "", x = "") +
+        scale_x_discrete(labels=c("black", "coloured", "indian", "white"))
+d2 <- ggplot(set12c, aes(edu, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "education", y = "", x = "") +
+        scale_x_discrete(labels=c("<matric", "matric",">matric"))
+d3 <- ggplot(set12c, aes(age, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "age", y = "", x = "") +
+        scale_x_discrete(labels=c("15-24","25-44", "45-54","55+"))
+d4 <- ggplot(set12c, aes(lsm, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "lsm", y = "", x = "") +
+        scale_x_discrete(labels=c("1-2", "3-4", "5-6", "7-8", "9-10"))
+
+jpeg('typeDemogPlots1_12.jpeg', quality = 100, type = "cairo")
+grid.arrange(d1, d2, d3, d4, ncol=2, nrow = 2)
+dev.off()
+
+d5 <- ggplot(set12c, aes(sex, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "gender", y = "", x = "") +
+        scale_x_discrete(labels=c("male", "female"))
+d6 <- ggplot(set12c, aes(hh_inc, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "household income", y = "", x = "") +
+        scale_x_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000"))
+d7 <- ggplot(set12c, aes(lifestages, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "lifestages", y = "", x = "")# +
+# scale_x_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000"))
+d8 <- ggplot(set12c, aes(lifestyle, cluster, fill = cluster)) +
+        geom_col() +
+        labs(title = "lifestyle", y = "", x = "")# +
+# scale_x_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000"))
+jpeg('typeDemogPlots2_12.jpeg', quality = 100, type = "cairo")
+grid.arrange(d5, d6, d7, d8, ncol=2, nrow = 2)
+dev.off()
+
 
 # consider multidimensional scaling and self organising maps on the clusters :
 
@@ -250,30 +257,5 @@ rpart.plot(tree12, type = 4, extra = 1, cex = 0.5)
 percentile <- ecdf(set12$internet)
 percentile(1.4)
 
-# some plots
-jpeg('typeBoxPlots_12.jpeg', quality = 100, type = "cairo")
-par(mfrow = c(2,3))
-plot(set12$radio ~ set12$cluster, col = c(2,3,4,6), main = "radio", xlab = "cluster", ylab = '')
-plot(set12$tv ~ set12$cluster, col = c(2,3,4,6), main = "tv", xlab = "cluster", ylab = '')
-plot(set12$newspapers ~ set12$cluster, col = c(2,3,4,6), main = "newspapers", xlab = "cluster", ylab = '')
-plot(set12$magazines ~ set12$cluster, col = c(2,3,4,6), main = "magazines", xlab = "cluster", ylab = '')
-plot(set12$internet ~ set12$cluster, col = c(2,3,4,6), main = "internet", xlab = "cluster", ylab = '')
-plot(set12$all ~ set12$cluster, col = c(2,3,4,6), main = "all", xlab = "cluster", ylab = '')
-dev.off()
 
-# try to make sense of demographics
-jpeg('typeDemogPlots1_12.jpeg', quality = 100, type = "cairo")
-par(mfrow = c(2,2))
-plot(set12$cluster ~ factor(set12$race,labels = c("black", "coloured", "indian", "white")), col = c(2,3,4,6), main = "race", xlab = "", ylab = "")
-plot(set12$cluster ~ factor(set12$edu, labels = c("<matric", "matric",">matric" )), col = c(2,3,4,6), main = "education", xlab = "", ylab = "")
-plot(set12$cluster ~ factor(set12$age, labels = c("15-24","25-44", "45-54","55+")), col = c(2,3,4,6), main = "age", xlab = "", ylab = "")
-plot(set12$cluster ~ factor(set12$lsm, labels = c("1-2", "3-4", "5-6", "7-8", "9-10")), col = c(2,3,4,6), main = "LSM", xlab = "", ylab = "")
-dev.off()
 
-jpeg('typeDemogPlots2_12.jpeg', quality = 100, type = "cairo")
-par(mfrow = c(2,2))
-plot(set12$cluster ~ factor(set12$sex, labels = c("male", "female")), col = c(2,3,4,6), main = "sex", xlab = "", ylab = "")
-plot(set12$cluster ~ factor(set12$hh_inc, labels = c("<5000","5000-10999","11000-19999",">=20000")), col = c(2,3,4,6), main = "hh_inc", xlab = "", ylab = "")
-plot(set12$cluster ~ set12$lifestages, col = c(2,3,4,6), main = "lifestages", xlab = "", ylab = "")
-plot(set12$cluster ~ set12$lifestyle, col = c(2,3,4,6), main = "lifestyle", xlab = "", ylab = "")
-dev.off()
