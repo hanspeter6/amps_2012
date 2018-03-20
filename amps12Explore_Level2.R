@@ -15,10 +15,11 @@ library(nFactors)
 library(FactoMineR)
 library(factoextra)
 library(gridExtra)
+library(ggplot2)
 
 # load datafiles 
-set12 <- readRDS("set12.rds")
-set12_simple <- readRDS("set12_simple.rds")
+set12c <- readRDS("set12c.rds")
+set12c_simple <- readRDS("set12c_simple.rds")
 
 # LEVEL 2
 
@@ -28,133 +29,127 @@ set12_simple <- readRDS("set12_simple.rds")
 # greater jhb: metro == 7
 
 # isolate cape town
-set12_CT <- set12 %>% filter(metro == 1) # first did 1 and 2 but found marginal factor messes up...
+set12_CT <- set12c %>% filter(metro == 1) 
 
 # isolate johannesburg
-set12_JHB <- set12 %>% filter(metro == 7)
+set12_JHB <- set12c %>% filter(metro == 7)
 
-# actually want to consider only those variables with a reasonable number (consider 10%)
-# cape town
-tempVec <- vector()
-for(i in 1:ncol(set12_CT)) {
-        tempVec[i] <- sum(set12_CT[,i] != 0, na.rm = TRUE)
-}
+# get rid of near zero variances:
+ind_ct <- nearZeroVar(set12_CT[,23:ncol(set12_CT)], saveMetrics = TRUE)
+ind_jhb <- nearZeroVar(set12_JHB[,23:ncol(set12_JHB)], saveMetrics = TRUE)
 
-set12_CT <- set12_CT[,which(tempVec > 0.1*nrow(set12_CT))]
+good_ct <- set12_CT[,23:ncol(set12_CT)][,!ind_ct$nzv]
+good_jhb <- set12_JHB[,23:ncol(set12_JHB)][,!ind_jhb$nzv]
 
-# johannesburg
-tempVec_ct <- vector()
-for(i in 1:ncol(set12_JHB)) {
-        tempVec_ct[i] <- sum(set12_JHB[,i] != 0, na.rm = TRUE)
-}
+nuSet12_CT <- data.frame(cbind(set12_CT[,1:22], good_ct))
+nuSet12_JHB <- data.frame(cbind(set12_JHB[,1:22], good_jhb))
 
-set12_JHB <- set12_JHB[,which(tempVec_ct > 0.1*nrow(set12_JHB))]
+#setting the ordered variables as scaled numerical:
+nuSet12_CT$age <- scale(as.numeric(nuSet12_CT$age))
+nuSet12_CT$edu <- scale(as.numeric(nuSet12_CT$edu))
+nuSet12_CT$hh_inc <- scale(as.numeric(nuSet12_CT$hh_inc))
+nuSet12_CT$lsm <- scale(as.numeric(nuSet12_CT$lsm))
 
-# also want to consider only main languages in Cape Town (jhb seems more divided in language)
-table(set12_CT$lang)
-table(set12_JHB$lang)
+nuSet12_JHB$age <- scale(as.numeric(nuSet12_JHB$age))
+nuSet12_JHB$edu <- scale(as.numeric(nuSet12_JHB$edu))
+nuSet12_JHB$hh_inc <- scale(as.numeric(nuSet12_JHB$hh_inc))
+nuSet12_JHB$lsm <- scale(as.numeric(nuSet12_JHB$lsm))
 
-# in Cape Town (English, Afrikaans, Xhosa)
-# ie Same: 1 = Afrikaans; 2 = English
-#  Change 4 (zulu) to 3 = Xhosa.
-#  change all others to 4 = Other
+# naming the factors
 
-set12_CT$lang <- ifelse(set12_CT$lang == 3, 12, set12_CT$lang)
-set12_CT$lang <- ifelse(set12_CT$lang == 4, 3, set12_CT$lang)
-set12_CT$lang <- ifelse(!set12_CT$lang %in% c(1,2,3), 4, set12_CT$lang)
-set12_CT$lang <- factor(set12_CT$lang)
+# Cape Town
+nuSet12_CT$cluster <- factor(nuSet12_CT$cluster,
+                                        levels = c(1,2,3,4),
+                                        labels = c("heavy all media", "internet lead", "light all media", "internet lag"))
+nuSet12_CT$sex <- factor(nuSet12_CT$sex,
+                                 levels = c(1,2),
+                                 labels = c("male", "female"))
+nuSet12_CT$race <- factor(nuSet12_CT$race,
+                                  levels = c(1,2,3,4),
+                                  labels = c("black", "coloured", "indian", "white"))
+nuSet12_CT$lifestages <- factor(nuSet12_CT$lifestages,
+                                        levels = c(1,2,3,4,5,6,7,8),
+                                        labels = c("at home singles", "young independent singles", "mature singles", "young couples", "mature couples", "young family", "single parent family", "mature family"))
+nuSet12_CT$mar_status <- factor(nuSet12_CT$mar_status,
+                                        levels = c(1,2,3,4,5),
+                                        labels = c("single", "married or living together", "widowed", "divorced", "separated"))
+nuSet12_CT$lifestyle <- factor(nuSet12_CT$lifestyle,
+                                       levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
+                                       labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "good living", "avid readers", "traditionalists","cell fundamentals", "homebodies", "studious", "showgoers"))
+nuSet12_CT$attitudes <- factor(nuSet12_CT$attitudes,
+                                       levels = c(1,2,3,4,5,6,7),
+                                       labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
 
-# consider distributions of media data:
-hist(set12_CT$Voice.Cape)
-hist(log(set12_CT$Voice.Cape))
+# Johannesburg
+# 
+nuSet12_JHB$cluster <- factor(nuSet12_JHB$cluster,
+                             levels = c(1,2,3,4),
+                             labels = c("heavy all media", "internet lead", "light all media", "internet lag"))
+nuSet12_JHB$sex <- factor(nuSet12_JHB$sex,
+                                  levels = c(1,2),
+                                  labels = c("male", "female"))
+nuSet12_JHB$race <- factor(nuSet12_JHB$race,
+                                   levels = c(1,2,3,4),
+                                   labels = c("black", "coloured", "indian", "white"))
+nuSet12_JHB$lifestages <- factor(nuSet12_JHB$lifestages,
+                                         levels = c(1,2,3,4,5,6,7,8),
+                                         labels = c("at home singles", "young independent singles", "mature singles", "young couples", "mature couples", "young family", "single parent family", "mature family"))
+nuSet12_JHB$mar_status <- factor(nuSet12_JHB$mar_status,
+                                         levels = c(1,2,3,4,5),
+                                         labels = c("single", "married or living together", "widowed", "divorced", "separated"))
+nuSet12_JHB$lifestyle <- factor(nuSet12_JHB$lifestyle,
+                                        levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
+                                        labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "good living", "avid readers", "traditionalists","cell fundamentals", "homebodies", "studious", "showgoers"))
+nuSet12_JHB$attitudes <- factor(nuSet12_JHB$attitudes,
+                                        levels = c(1,2,3,4,5,6,7),
+                                        labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
 
-# scale the media vehicle columns (note, exclude the clusters for type columns)
-set12_CT[,21:58] <- scale(set12_CT[,21:58])
-set12_JHB[,21:63] <- scale(set12_JHB[,21:63])
+# focussing only on the variable I intend to use in this section:
+nuSet12_CT <- nuSet12_CT[,-c(1:2,9:11, 17:22)]
+nuSet12_JHB <- nuSet12_JHB[,-c(1:2,9:11, 17:22)]
 
-saveRDS(set12_CT, "set12_CT.rds")
-saveRDS(set12_JHB, "set12_JHB.rds")
+# saving these objects:
+saveRDS(nuSet12_CT, "nuSet12_CT.rds")
+saveRDS(nuSet12_JHB, "nuSet12_JHB.rds")
 
-set12_CT <- readRDS("set12_CT.rds")
-set12_JHB <- readRDS("set12_JHB.rds")
-
-
-
-
-
-
-
-
+nuSet12_CT <- readRDS("nuSet12_CT.rds")
+nuSet12_JHB <- readRDS("nuSet12_JHB.rds")
 
 ## Determine Number of Factors to Extract
-ev_ct <- eigen(cor(set12_CT[,21:58]))
-ap_ct <- parallel(subject=nrow(set12_CT[,21:58]),var=ncol(set12_CT[,21:58]),
+ev_ct <- eigen(cor(nuSet12_CT[,12:ncol(nuSet12_CT)]))
+ap_ct <- parallel(subject=nrow(nuSet12_CT[,12:ncol(nuSet12_CT)]),var=ncol(nuSet12_CT[,12:ncol(nuSet12_CT)]),
                rep=100,cent=.05)
 nS_ct <- nScree(x=ev_ct$values, aparallel=ap_ct$eigen$qevpea)
 jpeg("nScree_12_ct")
 plotnScree(nS_ct, main = "Cape Town") # optimal = 7
 dev.off()
 
-ev_jhb <- eigen(cor(set12_JHB[,21:63]))
-ap_jhb <- parallel(subject=nrow(set12_JHB[,21:63]),var=ncol(set12_JHB[,21:63]),
+ev_jhb <- eigen(cor(nuSet12_JHB[,12:ncol(nuSet12_JHB)]))
+ap_jhb <- parallel(subject=nrow(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),var=ncol(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),
                rep=100,cent=.05)
 nS_jhb <- nScree(x=ev_jhb$values, aparallel=ap_jhb$eigen$qevpea)
 jpeg("nScree_12_jhb")
-plotnScree(nS_jhb, main = "Johannesburg") # optimal = 8
+plotnScree(nS_jhb, main = "Johannesburg") # 
 dev.off()
 
-# starting analysis with FactoMineR and factoextra
-
-# First some examination of the dataset
-
-# fitting PCA, with FactoMineR:
-pca_12_ct <- PCA(set12_CT[,c(21:58)], ncp = 7, graph = FALSE, scale = FALSE)
-pca_12_jhb <- PCA(set12_JHB[,21:63], ncp = 8, graph = FALSE, scale = FALSE) 
+# creating objects with supplementary variables (qualitative and quantitative) and active one defined:
+set.seed(56)
+pca_12_ct <- PCA(nuSet12_CT,
+                 quanti.sup = c(2,4,5,9),
+                 quali.sup = c(1,3,6,7,8,10,11),
+                 ncp = nS_ct$Components$noc,
+                 graph = FALSE)
+set.seed(56)
+pca_12_jhb <- PCA(nuSet12_JHB,
+                  quanti.sup = c(2,4,5,9),
+                  quali.sup = c(1,3,6,7,8,10,11),
+                  ncp = nS_jhb$Components$noc,
+                  graph = FALSE)
 
 # try FactoInvestigate
 library(FactoInvestigate)
 Investigate(pca_12_ct)
 Investigate(pca_12_jhb)
-
-
-# want to identify highest contributions/ correlations to media vehicles:
-# visualising some rings of  contributions/correlations:
-# Control variable colors using their contributions
-
-# write a loop to generate plots for any:
-
-# for cape town
-for(i in seq(1, 6, 2)) {
-        file_name <- paste0("contributions12_ct_", i, "n", i + 1, ".jpeg")
-        
-        fviz_pca_var(pca_12_ct,
-                     axes = c(i, i+1),
-                     col.var="contrib",
-                     gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-                     title = "Cape Town",
-                     repel = TRUE # Avoid text overlapping
-        )
-        
-        }
-
-contributions_plot <- function(year = "12", city = "Johannesburg", dims = c(1,2), pca_object = pca_12_jhb) { # year = "12" or "02"; city = "ct" or "jhb"; dims = "1n2" or "4n5"
-        
-        # define plot file name eg: "contributions12_ct_1n2.jpeg
-        city_abbr <- ifelse(city == "Cape Town", "ct", "jhb")
-        dims_abbr <- paste0(dims[1], "n", dims[2])
-        file_name <- paste0("contributions", year, "_", city_abbr, "_", dims_abbr, ".jpeg")
-
-        # plot and print to file
-        return
-        jpeg(file_name)
-        fviz_pca_var(pca_object, col.var="contrib",
-                     gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-                     title = city,
-                     repel = TRUE # Avoid text overlapping
-        )
-        dev.off()
-        
-        }
 
 # cape town contributions plots
 jpeg("contributions12_ct_1n2.jpeg")
@@ -197,7 +192,7 @@ fviz_pca_var(pca_12_ct,
 )
 dev.off()
 
-# for the five jhb dimensions
+# for the six jhb dimensions
 jpeg("contributions12_jhb_1m2.jpeg")
 fviz_pca_var(pca_12_jhb,
              axes = c(1,2),
@@ -218,9 +213,9 @@ fviz_pca_var(pca_12_jhb,
 )
 dev.off()
 
-jpeg("contributions12_jhb_4m5.jpeg")
+jpeg("contributions12_jhb_5m6.jpeg")
 fviz_pca_var(pca_12_jhb,
-             axes = c(4,5),
+             axes = c(5,6),
              col.var="contrib",
              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
              title = "Johannesburg",
@@ -242,7 +237,7 @@ contrib_ct <- as.data.frame(pca_12_ct$var$contrib)
 cos2_ct <- as.data.frame(pca_12_ct$var$cos2)
 
 dims_ct <- list()
-for(i in 1:7) {
+for(i in 1:nS_ct$Components$noc) {
         temp <- data.frame(vehicle_ct, corr = corr_ct[,i], contrib = contrib_ct[,i], cos2 = cos2_ct[,i]) %>%
                 filter(corr > 0.3 | corr < -0.3) %>%
                 arrange(desc(corr))
@@ -257,7 +252,7 @@ contrib_jhb <- as.data.frame(pca_12_jhb$var$contrib, row.names = '')
 cos2_jhb <- as.data.frame(pca_12_jhb$var$cos2, row.names = '')
 
 dims_jhb <- list()
-for(i in 1:5) {
+for(i in 1:nS_jhb$Components$noc) {
         temp <- data.frame(vehicle_jhb, corr = corr_jhb[,i], contrib = contrib_jhb[,i], cos2 = cos2_jhb[,i]) %>%
                 filter(corr > 0.3 | corr < -0.3) %>%
                 arrange(desc(corr))
@@ -267,34 +262,26 @@ for(i in 1:5) {
 
 # Dimension Tables Information Cape Town 1 & 2:
 # for dimension 1
-tab_ct_1 <- tableGrob(round(dims_ct[[1]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_1 <- tableGrob(round(dims_ct[[1]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_1 <- grobHeight(tab_ct_1)
 w_ct_1 <- grobWidth(tab_ct_1)
 title_ct_1 <- textGrob("Dimension 1", y=unit(0.5,"npc") + 0.5*h_ct_1, 
                   vjust=-6, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_ct_1 <- gTree(children = gList(tab_ct_1, title_ct_1)) #,footnote
-grid.draw(gt_ct_1) # check
+# grid.draw(gt_ct_1) # check
 
 # for dimension 2
-tab_ct_2 <- tableGrob(round(dims_ct[[2]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_2 <- tableGrob(round(dims_ct[[2]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_2 <- grobHeight(tab_ct_1)
 w_ct_2 <- grobWidth(tab_ct_1)
 title_ct_2 <- textGrob("Dimension 2", y=unit(0.5,"npc") + 0.5*h_ct_2, 
-                       vjust=-5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
+                       vjust=-6, hjust = 0.2, gp=gpar(fontsize=14)) # title
 gt_ct_2 <- gTree(children = gList(tab_ct_2, title_ct_2)) #,footnote
-#grid.draw(gt_ct_2) # check
+# grid.draw(gt_ct_2) # check
 
 # arrange two Dimensions on one plot and print to interactive graphic with latex
 ml_ct_1n2 <- marrangeGrob(list(gt_ct_1,gt_ct_2), nrow=1, ncol=2, top = '\n\n\n\nCape Town')
@@ -308,40 +295,26 @@ dev.off()
 # for dimension 1
 # given so many, will cut it off at 0.4:
 
-dims_jhb_adj <- dims_jhb[[1]] %>%
-        mutate(vehicle = rownames(dims_jhb[[1]])) %>%
-        filter(corr > 0.4 | corr < -0.4)
-rownames(dims_jhb_adj) <- dims_jhb_adj$vehicle
-dims_jhb_adj <- dims_jhb_adj[,-4]
-
-tab_jhb_1 <- tableGrob(round(dims_jhb_adj, 4), theme = ttheme_default(base_size = 10)) # table
+tab_jhb_1 <- tableGrob(round(dims_jhb[[1]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_jhb_1 <- grobHeight(tab_jhb_1)
 w_jhb_1 <- grobWidth(tab_jhb_1)
 title_jhb_1 <- textGrob("Dimension 1", y=unit(0.5,"npc") + 0.5*h_jhb_1, 
-                       vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
-gt_jhb_1 <- gTree(children = gList(tab_jhb_1, title_jhb_1)) #,footnote
-grid.draw(gt_jhb_1) # check
+                       vjust=-8, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_jhb_1 <- gTree(children = gList(tab_jhb_1, title_jhb_1))
+# grid.draw(gt_jhb_1) # check
 
 # for dimension 2
-tab_jhb_2 <- tableGrob(round(dims_jhb[[2]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_jhb_2 <- tableGrob(round(dims_jhb[[2]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_jhb_2 <- grobHeight(tab_jhb_2)
 w_jhb_2 <- grobWidth(tab_jhb_2)
 title_jhb_2 <- textGrob("Dimension 2", y=unit(0.5,"npc") + 0.5*h_jhb_2, 
-                       vjust=-6.5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
-gt_jhb_2 <- gTree(children = gList(tab_jhb_2, title_jhb_2)) #,footnote
-grid.draw(gt_jhb_2) # check
+                       vjust=-6, hjust = 0.2, gp=gpar(fontsize=14)) # title
+gt_jhb_2 <- gTree(children = gList(tab_jhb_2, title_jhb_2))
+# grid.draw(gt_jhb_2) # check
 
 # arrange two Dimensions
 ml_jhb_1n2 <- marrangeGrob(list(gt_jhb_1,gt_jhb_2), nrow=1, ncol=2, top = '\n\nJohannesburg')
@@ -353,34 +326,26 @@ dev.off()
 
 # CAPE TOWN 3 & 4:
 # for dimension 3
-tab_ct_3 <- tableGrob(round(dims_ct[[3]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_3 <- tableGrob(round(dims_ct[[3]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_3 <- grobHeight(tab_ct_3)
 w_ct_3 <- grobWidth(tab_ct_3)
 title_ct_3 <- textGrob("Dimension 3", y=unit(0.5,"npc") + 0.5*h_ct_3, 
                        vjust=-6, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_ct_3 <- gTree(children = gList(tab_ct_3, title_ct_3)) #,footnote
-grid.draw(gt_ct_3) # check
+# grid.draw(gt_ct_3) # check
 
 # for dimension 4
-tab_ct_4 <- tableGrob(round(dims_ct[[4]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_4 <- tableGrob(round(dims_ct[[4]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_4 <- grobHeight(tab_ct_4)
 w_ct_4 <- grobWidth(tab_ct_4)
 title_ct_4 <- textGrob("Dimension 4", y=unit(0.5,"npc") + 0.5*h_ct_4, 
                        vjust=-5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_ct_4 <- gTree(children = gList(tab_ct_4, title_ct_4)) #,footnote
-grid.draw(gt_ct_2) # check
+# grid.draw(gt_ct_2) # check
 
 # arrange two Dimensions on one plot and print to interactive graphic with latex
 ml_ct_3n4 <- marrangeGrob(list(gt_ct_3,gt_ct_4), nrow=1, ncol=2, top = '\n\n\n\nCape Town')
@@ -391,36 +356,27 @@ ml_ct_3n4
 dev.off()
 
 # JHB 3 & 4:
-# for dimension 1
 
-tab_jhb_3 <- tableGrob(round(dims_jhb[[3]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_jhb_3 <- tableGrob(round(dims_jhb[[3]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_jhb_3 <- grobHeight(tab_jhb_3)
 w_jhb_3 <- grobWidth(tab_jhb_3)
 title_jhb_3 <- textGrob("Dimension 3", y=unit(0.5,"npc") + 0.5*h_jhb_3, 
                         vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_jhb_3 <- gTree(children = gList(tab_jhb_3, title_jhb_3)) #,footnote
-grid.draw(gt_jhb_3) # check
+# grid.draw(gt_jhb_3) # check
 
 # for dimension 4
-tab_jhb_4 <- tableGrob(round(dims_jhb[[4]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_jhb_4 <- tableGrob(round(dims_jhb[[4]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_jhb_4 <- grobHeight(tab_jhb_4)
 w_jhb_4 <- grobWidth(tab_jhb_4)
 title_jhb_4 <- textGrob("Dimension 4", y=unit(0.5,"npc") + 0.5*h_jhb_4, 
                         vjust=-6.5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_jhb_4 <- gTree(children = gList(tab_jhb_4, title_jhb_4)) #,footnote
-grid.draw(gt_jhb_4) # check
+# grid.draw(gt_jhb_4) # check
 
 # arrange two Dimensions
 ml_jhb_3n4 <- marrangeGrob(list(gt_jhb_3,gt_jhb_4), nrow=1, ncol=2, top = '\n\nJohannesburg')
@@ -434,209 +390,361 @@ dev.off()
 
 # CAPE TOWN 5 & 6 & 7:
 # for dimension 5
-tab_ct_5 <- tableGrob(round(dims_ct[[5]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_5 <- tableGrob(round(dims_ct[[5]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_5 <- grobHeight(tab_ct_5)
 w_ct_5 <- grobWidth(tab_ct_5)
 title_ct_5 <- textGrob("Dimension 5", y=unit(0.5,"npc") + 0.5*h_ct_5, 
                        vjust=-6, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_ct_5 <- gTree(children = gList(tab_ct_5, title_ct_5)) #,footnote
-grid.draw(gt_ct_5) # check
+# grid.draw(gt_ct_5) # check
 
 # for dimension 6
-tab_ct_6 <- tableGrob(round(dims_ct[[6]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_6 <- tableGrob(round(dims_ct[[6]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_6 <- grobHeight(tab_ct_6)
 w_ct_6 <- grobWidth(tab_ct_6)
 title_ct_6 <- textGrob("Dimension 6", y=unit(0.5,"npc") + 0.5*h_ct_6, 
                        vjust=-5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_ct_6 <- gTree(children = gList(tab_ct_6, title_ct_6)) #,footnote
-grid.draw(gt_ct_6) # check
+# grid.draw(gt_ct_6) # check
 
 # for dimension 7
-tab_ct_7 <- tableGrob(round(dims_ct[[7]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_ct_7 <- tableGrob(round(dims_ct[[7]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_ct_7 <- grobHeight(tab_ct_7)
 w_ct_7 <- grobWidth(tab_ct_7)
 title_ct_7 <- textGrob("Dimension 7", y=unit(0.5,"npc") + 0.5*h_ct_7, 
                        vjust=-5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_ct_7 <- gTree(children = gList(tab_ct_7, title_ct_7)) #,footnote
-grid.draw(gt_ct_7) # check
+# grid.draw(gt_ct_7) # check
 
 # arrange three Dimensions on one plot and print to interactive graphic with latex
-ml_ct_5n6 <- marrangeGrob(list(gt_ct_5,gt_ct_6), nrow=1, ncol=2, top = '\n\n\n\nCape Town')
+ml_ct_5n6n7 <- marrangeGrob(list(gt_ct_5,gt_ct_6, gt_ct_7), nrow=2, ncol=2, top = '\nCape Town')
 
 # print to graphic
 jpeg("dims12_ct_5n6.jpeg")
-ml_ct_5n6
+ml_ct_5n6n7
 dev.off()
 
-# JHB 5:
+# JHB 5 and 6:
 # for dimension 5
 
-tab_jhb_5 <- tableGrob(round(dims_jhb[[5]], 4), theme = ttheme_default(base_size = 10)) # table
+tab_jhb_5 <- tableGrob(round(dims_jhb[[5]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
 h_jhb_5 <- grobHeight(tab_jhb_5)
 w_jhb_5 <- grobWidth(tab_jhb_5)
-title_jhb_5 <- textGrob("JHB Dimension 5", y=unit(0.5,"npc") + 0.5*h_jhb_3, 
+title_jhb_5 <- textGrob("Dimension 5", y=unit(0.5,"npc") + 0.5*h_jhb_3, 
                         vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-# footnote <- textGrob("footnote", 
-#                      x=unit(0.5,"npc") - 0.5*w,
-#                      y=unit(0.5,"npc") - 0.5*h, 
-#                      vjust=1, hjust=0,gp=gpar( fontface="italic"))
 gt_jhb_5 <- gTree(children = gList(tab_jhb_5, title_jhb_5)) #,footnote
-grid.draw(gt_jhb_5) # check
+# grid.draw(gt_jhb_5) # check
 
+# for dimension 6
+
+tab_jhb_6 <- tableGrob(round(dims_jhb[[6]], 2), theme = ttheme_minimal(base_size = 10)) # table
+
+grid.newpage()
+h_jhb_6 <- grobHeight(tab_jhb_6)
+w_jhb_6 <- grobWidth(tab_jhb_6)
+title_jhb_6 <- textGrob("Dimension 6", y=unit(0.5,"npc") + 0.5*h_jhb_3, 
+                        vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_jhb_6 <- gTree(children = gList(tab_jhb_6, title_jhb_6)) #,footnote
+# grid.draw(gt_jhb_6) # check
 
 # arrange two Dimensions
-ml_ct_7_jhb_5 <- marrangeGrob(list(gt_ct_7,gt_jhb_5), nrow=1, ncol=2,
-                              top = '\n\n\nCapeTown (Dimension 7) \n\nand\n\nJohannesburg (Dimension 5)')
+ml_jhb_5n65 <- marrangeGrob(list(gt_jhb_5,gt_jhb_6), nrow=1, ncol=2,
+                              top = '\n\n\n\nJohannesburg')
 
 # print to graphic
-jpeg("dims12_ct_7_jhb_5.jpeg")
-ml_ct_7_jhb_5
+jpeg("dims12_jhb_5n6.jpeg")
+ml_jhb_5n65
 dev.off()
 
 
-## relationship with categorical/demographic vars
-# set up the datasets to exlude:
-#  -  initial 2 vars ("qn" and "pwgt") & 
-#  - the total media engagement (type) variables
-#  - some variables I will not be using eg. pers_inc, province, metro
-
-categoricals_12_CT <- set12_CT[,c(3:7,10:12,14:16,60, 22:59)]
-categoricals_12_JHB <- set12_JHB[,c(3:7,10:12,14:16,65, 22:64)]
-
-#setting the ordered variables as scaled numerical:
-categoricals_12_CT[,1] <- scale(as.numeric(categoricals_12_CT[,1]))
-categoricals_12_CT[,3] <- scale(as.numeric(categoricals_12_CT[,3]))
-categoricals_12_CT[,4] <- scale(as.numeric(categoricals_12_CT[,4]))
-categoricals_12_CT[,9] <- scale(as.numeric(categoricals_12_CT[,9]))
-
-categoricals_12_JHB[,1] <- scale(as.numeric(categoricals_12_JHB[,1]))
-categoricals_12_JHB[,3] <- scale(as.numeric(categoricals_12_JHB[,3]))
-categoricals_12_JHB[,4] <- scale(as.numeric(categoricals_12_JHB[,4]))
-categoricals_12_JHB[,9] <- scale(as.numeric(categoricals_12_JHB[,9]))
-
-# naming the factors for easier processing:
-
-# Cape Town
-categoricals_12_CT$sex <- factor(categoricals_12_CT$sex,
-                    levels = c(1,2),
-                    labels = c("male", "female"))
-categoricals_12_CT$race <- factor(categoricals_12_CT$race,
-                                 levels = c(1,2,3,4),
-                                 labels = c("black", "coloured", "indian", "white"))
-categoricals_12_CT$lang <- factor(categoricals_12_CT$lang,
-                                  levels = c(1,2,3,4),
-                                  labels = c("afrikaans", "english", "xhosa", "other"))
-categoricals_12_CT$lifestages <- factor(categoricals_12_CT$lifestages,
-                                  levels = c(1,2,3,4,5,6,7,8),
-                                  labels = c("at home singles", "young independent singles", "mature singles", "young couples", "mature couples", "young family", "single parent family", "mature family"))
-categoricals_12_CT$mar_status <- factor(categoricals_12_CT$mar_status,
-                                  levels = c(1,2,3,4,5),
-                                  labels = c("single", "married or living together", "widowed", "divorced", "separated"))
-categoricals_12_CT$lifestyle <- factor(categoricals_12_CT$lifestyle,
-                                  levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                                  labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "avid readers", "traditionalists","cell fundamentals", "homebodies", "bars n betters", "showgoers", "gardeners"))
-categoricals_12_CT$attitudes <- factor(categoricals_12_CT$attitudes,
-                                  levels = c(1,2,3,4,5,6,7),
-                                  labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
-categoricals_12_CT$cluster <- factor(categoricals_12_CT$cluster,
-                                        levels = c(1,2,3,4,5),
-                                        labels = c("radio and tv above all else", "tv is all", "minimal media", "maximum media", "big on internet and some tv"))
-
-# Johannesburg
-categoricals_12_JHB$sex <- factor(categoricals_12_JHB$sex,
-                                 levels = c(1,2),
-                                 labels = c("male", "female"))
-categoricals_12_JHB$race <- factor(categoricals_12_JHB$race,
-                                  levels = c(1,2,3,4),
-                                  labels = c("black", "coloured", "indian", "white"))
-categoricals_12_JHB$lang <- factor(categoricals_12_JHB$lang,
-                                  levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                                  labels = c("afrikaans", "english", "zulu", "xhosa","n.sotho","s.sotho","tswana","tsonga","venda","swazi","ndebele","other"))
-categoricals_12_JHB$lifestages <- factor(categoricals_12_JHB$lifestages,
-                                        levels = c(1,2,3,4,5,6,7,8),
-                                        labels = c("at home singles", "young independent singles", "mature singles", "young couples", "mature couples", "young family", "single parent family", "mature family"))
-categoricals_12_JHB$mar_status <- factor(categoricals_12_JHB$mar_status,
-                                        levels = c(1,2,3,4,5),
-                                        labels = c("single", "married or living together", "widowed", "divorced", "separated"))
-categoricals_12_JHB$lifestyle <- factor(categoricals_12_JHB$lifestyle,
-                                       levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                                       labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "avid readers", "traditionalists","cell fundamentals", "homebodies", "bars n betters", "showgoers", "gardeners"))
-categoricals_12_JHB$attitudes <- factor(categoricals_12_JHB$attitudes,
-                                       levels = c(1,2,3,4,5,6,7),
-                                       labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
-categoricals_12_JHB$cluster <- factor(categoricals_12_JHB$cluster,
-                                     levels = c(1,2,3,4,5),
-                                     labels = c("radio and tv above all else", "tv is all", "minimal media", "maximum media", "big on internet and some tv"))
-
-# saving these objects:
-saveRDS(categoricals_12_CT, "categoricals_12_CT.rds")
-saveRDS(categoricals_12_JHB, "categoricals_12_JHB.rds")
-
-categoricals_12_CT <- readRDS("categoricals_12_CT.rds")
-categoricals_12_JHB <- readRDS("categoricals_12_JHB.rds")
-
-# creating objects with supplementary variables (qualitative and quantitative) and active one defined:
-pca_12_ct_supp <- PCA(categoricals_12_CT, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12), ncp = 7, graph = FALSE)
-pca_12_jhb_supp <- PCA(categoricals_12_JHB, quanti.sup = c(1,3,4,9), quali.sup = c(2,5:8,10:12), ncp = 5, graph = FALSE)
-
+## CAPE TOWN
 # getting all the dimension descriptions
-dimdesc_12_ct <- dimdesc(pca_12_ct_supp, c(1:7), proba = 1)
+dimdesc_12_ct <- dimdesc(pca_12_ct, c(1:nS_ct$Components$noc), proba = 1)
 
-# categorical supplementaries per dimension... need to explain and interpret "Estimate"
+# categorical supplementaries per dimension ... need to explain and interpret "Estimate"
 cat_coord_12_ct <- list()
-for(i in 1:7) {
-        temp1 <- as.matrix(dimdesc_12_ct[[i]]$category)[c(1:5, (nrow(dimdesc_12_ct[[i]]$category) - 4):(nrow(dimdesc_12_ct[[i]]$category))),]
-        name <- paste0("Dim", 1)
-        cat_coord_12_ct[[i]] <- data.frame(est = round(temp1[,1], 2))
-
+for(i in 1:nS_ct$Components$noc) {
+        temp1 <- dimdesc_12_ct[[i]]$category[order(dimdesc_12_ct[[i]]$category[,1], decreasing = TRUE),]
+        temp2 <- temp1[c(1:5, (nrow(temp1) - 4): nrow(temp1)),1]
+        cat_coord_12_ct[[i]] <- data.frame(Est = round(temp2, 2))
+        # write.table(cat_coord_12_ct[[i]], file = paste0("cat_dim", i, "_ct.csv")) # if needed
+        
 }
 
-# as example, print some as tables to import... will figure out how to do this properly later.
-
-write.table(cat_coord_12_ct[[1]], file = "cat_dim1_ct.csv")
-write.table(cat_coord_12_ct[[2]], file = "cat_dim2_ct.csv")
-write.table(cat_coord_12_ct[[3]], file = "cat_dim3_ct.csv")
-
-
-# print to file for graphics:
-tab_ct_cat <- tableGrob(cat_coord_12_ct[[1]], theme = ttheme_default(base_size = 10)) # table
+# getting tables 
+# Dim 1 CT
+tab_ct_cat1 <- tableGrob(cat_coord_12_ct[[1]], theme = ttheme_minimal(base_size = 12)) # table
 
 grid.newpage()
-h_cont_ct <- grobHeight(tab_ct_cont)
-w_cont_ct <- grobWidth(tab_ct_cont)
-title_tab_cont_ct <- textGrob('', y=unit(0.5,"npc") + 0.5*h_cont_ct, 
+h_cat_ct1 <- grobHeight(tab_ct_cat1)
+w_cat_ct1 <- grobWidth(tab_ct_cat1)
+title_tab_cat_ct1 <- textGrob('Dimension 1', y=unit(0.5,"npc") + 0.5*h_cat_ct1, 
                               vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-gt_cont_ct<- gTree(children = gList(tab_ct_cont, title_tab_cont_ct))
-grid.draw(tab_ct_cat) # check
+gt_cat_ct1 <- gTree(children = gList(tab_ct_cat1, title_tab_cat_ct1))
 
+# grid.draw(gt_cat_ct1) # check
 
+# Dim 2 CT
+tab_ct_cat2 <- tableGrob(cat_coord_12_ct[[2]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_ct2 <- grobHeight(tab_ct_cat2)
+w_cat_ct2 <- grobWidth(tab_ct_cat2)
+title_tab_cat_ct2 <- textGrob('Dimension 2', y=unit(0.5,"npc") + 0.5*h_cat_ct2, 
+                             vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_ct2 <- gTree(children = gList(tab_ct_cat2, title_tab_cat_ct2))
+
+# grid.draw(gt_cat_ct2) # check
+
+# Dim 3 CT
+tab_ct_cat3 <- tableGrob(cat_coord_12_ct[[3]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_ct3 <- grobHeight(tab_ct_cat3)
+w_cat_ct3 <- grobWidth(tab_ct_cat3)
+title_tab_cat_ct3 <- textGrob('Dimension 3', y=unit(0.5,"npc") + 0.5*h_cat_ct3, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_ct3 <- gTree(children = gList(tab_ct_cat3, title_tab_cat_ct3))
+
+# grid.draw(gt_cat_ct3) # check        
+
+# Dim 4 CT
+tab_ct_cat4 <- tableGrob(cat_coord_12_ct[[4]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_ct4 <- grobHeight(tab_ct_cat4)
+w_cat_ct4 <- grobWidth(tab_ct_cat4)
+title_tab_cat_ct4 <- textGrob('Dimension 4', y=unit(0.5,"npc") + 0.5*h_cat_ct4, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_ct4 <- gTree(children = gList(tab_ct_cat4, title_tab_cat_ct4))
+
+# grid.draw(gt_cat_ct4) # check
+
+# Dim 5 CT
+tab_ct_cat5 <- tableGrob(cat_coord_12_ct[[5]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_ct5 <- grobHeight(tab_ct_cat5)
+w_cat_ct5 <- grobWidth(tab_ct_cat5)
+title_tab_cat_ct5 <- textGrob('Dimension 5', y=unit(0.5,"npc") + 0.5*h_cat_ct5, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_ct5 <- gTree(children = gList(tab_ct_cat5, title_tab_cat_ct5))
+
+# grid.draw(gt_cat_ct5) # check  
+
+# Dim 6 CT
+tab_ct_cat6 <- tableGrob(cat_coord_12_ct[[6]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_ct6 <- grobHeight(tab_ct_cat6)
+w_cat_ct6 <- grobWidth(tab_ct_cat6)
+title_tab_cat_ct6 <- textGrob('Dimension 6', y=unit(0.5,"npc") + 0.5*h_cat_ct6, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_ct6 <- gTree(children = gList(tab_ct_cat6, title_tab_cat_ct6))
+
+# grid.draw(gt_cat_ct6) # check  
+
+# Dim 7 CT
+tab_ct_cat7 <- tableGrob(cat_coord_12_ct[[7]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_ct7 <- grobHeight(tab_ct_cat7)
+w_cat_ct7 <- grobWidth(tab_ct_cat7)
+title_tab_cat_ct7 <- textGrob('Dimension 7', y=unit(0.5,"npc") + 0.5*h_cat_ct7, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_ct7 <- gTree(children = gList(tab_ct_cat7, title_tab_cat_ct7))
+
+# grid.draw(gt_cat_ct7) # check
+
+# creating two files for these 1st 4 and then 3 more
+# arrange first four
+ml_ct_1n2 <- marrangeGrob(list(gt_cat_ct1,
+                                gt_cat_ct2), nrow=1, ncol=2,
+                            top = '\n\n\n\nCape Town')
+
+# print to graphic
+jpeg("cats12_ct_1n2.jpeg")
+ml_ct_1n2
+dev.off()
+
+ml_ct_3n4 <- marrangeGrob(list(gt_cat_ct3,
+                                gt_cat_ct4), nrow=1, ncol=2,
+                           top = '\n\n\n\nCape Town')
+
+# print to graphic
+jpeg("cats12_ct_3n4.jpeg")
+ml_ct_3n4
+dev.off()
+
+ml_ct_5n6 <- marrangeGrob(list(gt_cat_ct5,
+                               gt_cat_ct6), nrow=1, ncol=2,
+                          top = '\n\n\n\nCape Town')
+
+# print to graphic
+jpeg("cats12_ct_5n6.jpeg")
+ml_ct_5n6
+dev.off()
+
+ml_ct_7 <- marrangeGrob(list(gt_cat_ct7), nrow=1, ncol=1,
+                          top = '\n\n\n\nCape Town')
+
+# print to graphic
+jpeg("cats12_ct_7.jpeg")
+ml_ct_7
+dev.off()
+
+## JOHANNESBURG
+# getting all the dimension descriptions
+dimdesc_12_jhb <- dimdesc(pca_12_jhb, c(1:nS_jhb$Components$noc), proba = 1)
+
+# categorical supplementaries per dimension ... need to explain and interpret "Estimate"
+cat_coord_12_jhb <- list()
+for(i in 1:nS_jhb$Components$noc) {
+        temp1 <- dimdesc_12_jhb[[i]]$category[order(dimdesc_12_jhb[[i]]$category[,1], decreasing = TRUE),]
+        temp2 <- temp1[c(1:5, (nrow(temp1) - 4): nrow(temp1)),1]
+        cat_coord_12_jhb[[i]] <- data.frame(Est = round(temp2, 2))
+        # write.table(cat_coord_12_ct[[i]], file = paste0("cat_dim", i, "_ct.csv")) # if needed
         
+}
+
+# getting tables 
+# Dim 1 JHB
+tab_jhb_cat1 <- tableGrob(cat_coord_12_jhb[[1]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_jhb1 <- grobHeight(tab_jhb_cat1)
+w_cat_jhb1 <- grobWidth(tab_jhb_cat1)
+title_tab_cat_jhb1 <- textGrob('Dimension 1', y=unit(0.5,"npc") + 0.5*h_cat_jhb1, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_jhb1 <- gTree(children = gList(tab_jhb_cat1, title_tab_cat_jhb1))
+
+grid.draw(gt_cat_jhb1) # check
+
+# Dim 2 jhb
+tab_jhb_cat2 <- tableGrob(cat_coord_12_jhb[[2]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_jhb2 <- grobHeight(tab_jhb_cat2)
+w_cat_jhb2 <- grobWidth(tab_jhb_cat2)
+title_tab_cat_jhb2 <- textGrob('Dimension 2', y=unit(0.5,"npc") + 0.5*h_cat_jhb2, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_jhb2 <- gTree(children = gList(tab_jhb_cat2, title_tab_cat_jhb2))
+
+# grid.draw(gt_cat_jhb2) # check
+
+# Dim 3 jhb
+tab_jhb_cat3 <- tableGrob(cat_coord_12_jhb[[3]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_jhb3 <- grobHeight(tab_jhb_cat3)
+w_cat_jhb3 <- grobWidth(tab_jhb_cat3)
+title_tab_cat_jhb3 <- textGrob('Dimension 3', y=unit(0.5,"npc") + 0.5*h_cat_jhb3, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_jhb3 <- gTree(children = gList(tab_jhb_cat3, title_tab_cat_jhb3))
+
+# grid.draw(gt_cat_jhb3) # check        
+
+# Dim 4 jhb
+tab_jhb_cat4 <- tableGrob(cat_coord_12_jhb[[4]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_jhb4 <- grobHeight(tab_jhb_cat4)
+w_cat_jhb4 <- grobWidth(tab_jhb_cat4)
+title_tab_cat_jhb4 <- textGrob('Dimension 4', y=unit(0.5,"npc") + 0.5*h_cat_jhb4, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_jhb4 <- gTree(children = gList(tab_jhb_cat4, title_tab_cat_jhb4))
+
+# grid.draw(gt_cat_jhb4) # check
+
+# Dim 5 jhb
+tab_jhb_cat5 <- tableGrob(cat_coord_12_jhb[[5]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_jhb5 <- grobHeight(tab_jhb_cat5)
+w_cat_jhb5 <- grobWidth(tab_jhb_cat5)
+title_tab_cat_jhb5 <- textGrob('Dimension 5', y=unit(0.5,"npc") + 0.5*h_cat_jhb5, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_jhb5 <- gTree(children = gList(tab_jhb_cat5, title_tab_cat_jhb5))
+
+# grid.draw(gt_cat_jhb5) # check  
+
+# Dim 6 jhb
+tab_jhb_cat6 <- tableGrob(cat_coord_12_jhb[[6]], theme = ttheme_minimal(base_size = 12)) # table
+
+grid.newpage()
+h_cat_jhb6 <- grobHeight(tab_jhb_cat6)
+w_cat_jhb6 <- grobWidth(tab_jhb_cat6)
+title_tab_cat_jhb6 <- textGrob('Dimension 6', y=unit(0.5,"npc") + 0.5*h_cat_jhb6, 
+                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+gt_cat_jhb6 <- gTree(children = gList(tab_jhb_cat6, title_tab_cat_jhb6))
+
+# grid.draw(gt_cat_jhb6) # check  
+
+# # Dim 7 CT
+# tab_ct_cat7 <- tableGrob(cat_coord_12_ct[[7]], theme = ttheme_minimal(base_size = 12)) # table
+# 
+# grid.newpage()
+# h_cat_ct7 <- grobHeight(tab_ct_cat7)
+# w_cat_ct7 <- grobWidth(tab_ct_cat7)
+# title_tab_cat_ct7 <- textGrob('Dimension 7', y=unit(0.5,"npc") + 0.5*h_cat_ct7, 
+#                               vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+# gt_cat_ct7 <- gTree(children = gList(tab_ct_cat7, title_tab_cat_ct7))
+# 
+# # grid.draw(gt_cat_ct7) # check
+
+# creating two files for these 1st 4 and then 3 more
+# arrange first four
+ml_jhb_1n2 <- marrangeGrob(list(gt_cat_jhb1,
+                               gt_cat_jhb2), nrow=1, ncol=2,
+                          top = '\n\n\n\nJohannesburg')
+
+# print to graphic
+jpeg("cats12_jhb_1n2.jpeg")
+ml_jhb_1n2
+dev.off()
+
+ml_jhb_3n4 <- marrangeGrob(list(gt_cat_jhb3,
+                               gt_cat_jhb4), nrow=1, ncol=2,
+                          top = '\n\n\n\nJohannesburg')
+
+# print to graphic
+jpeg("cats12_jhb_3n4.jpeg")
+ml_jhb_3n4
+dev.off()
+
+ml_jhb_5n6 <- marrangeGrob(list(gt_cat_jhb5,
+                               gt_cat_jhb6), nrow=1, ncol=2,
+                          top = '\n\n\n\nJohannesburg')
+
+# print to graphic
+jpeg("cats12_jhb_5n6.jpeg")
+ml_jhb_5n6
+dev.off()
+
+# ml_ct_7 <- marrangeGrob(list(gt_cat_ct7), nrow=1, ncol=1,
+#                         top = '\n\n\n\nCape Town')
+# 
+# # print to graphic
+# jpeg("cats12_ct_7.jpeg")
+# ml_ct_7
+# dev.off()
+
+
+
 
 # continuous supplementaries per dimension...explain difference... blah blah
 # cape town:
 
 cont_corrs_12_ct <- matrix(0, nrow = 4, ncol = 0)
-for(i in 1:7) {
+for(i in 1:nS_ct$Components$noc) {
         temp1 <- as.matrix(dimdesc_12_ct[[i]]$quanti)
         temp2 <- temp1[which(rownames(temp1) %in% c("age", "edu", "hh_inc", "lsm")),]
         cont_corrs_12_ct <- as.data.frame(round(cbind(cont_corrs_12_ct, temp2), 2))
@@ -645,20 +753,20 @@ names(cont_corrs_12_ct) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim
 
 # print to file for graphic:
 
-tab_ct_cont <- tableGrob(cont_corrs_12_ct, theme = ttheme_default(base_size = 10)) # table
+tab_ct_cont <- tableGrob(cont_corrs_12_ct, theme = ttheme_minimal(base_size = 8)) # table
 
 grid.newpage()
 h_cont_ct <- grobHeight(tab_ct_cont)
 w_cont_ct <- grobWidth(tab_ct_cont)
-title_tab_cont_ct <- textGrob('', y=unit(0.5,"npc") + 0.5*h_cont_ct, 
-                        vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-gt_cont_ct<- gTree(children = gList(tab_ct_cont, title_tab_cont_ct))
+title_tab_cont_ct <- textGrob('Cape Town', y=unit(0.5,"npc") + 0.3*h_cont_ct, 
+                        vjust=-4, hjust = 0.5, gp=gpar(fontsize=14)) # title
+gt_cont_ct<- gTree(children = gList(tab_ct_cont, title_tab_cont_ct)) #
 grid.draw(gt_cont_ct) # check
 
 # Johannesburg:
-dimdesc_12_jhb <- dimdesc(pca_12_jhb_supp, c(1:5), proba = 1)
+dimdesc_12_jhb <- dimdesc(pca_12_jhb, c(1:nS_jhb$Components$noc), proba = 1)
 cont_corrs_12_jhb <- matrix(0, nrow = 4, ncol = 0)
-for(i in 1:5) {
+for(i in 1:nS_jhb$Components$noc) {
         temp1 <- as.matrix(dimdesc_12_jhb[[i]]$quanti)
         temp2 <- temp1[which(rownames(temp1) %in% c("age", "edu", "hh_inc", "lsm")),]
         cont_corrs_12_jhb <- as.data.frame(round(cbind(cont_corrs_12_jhb, temp2), 2))
@@ -666,19 +774,19 @@ for(i in 1:5) {
 names(cont_corrs_12_jhb) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal" )
 
 # print to file for graphic:
-tab_jhb_cont <- tableGrob(cont_corrs_12_jhb, theme = ttheme_default(base_size = 10)) # table
+tab_jhb_cont <- tableGrob(cont_corrs_12_jhb, theme = ttheme_minimal(base_size = 8)) # table
 
 grid.newpage()
 h_cont_jhb <- grobHeight(tab_jhb_cont)
 w_cont_jhb <- grobWidth(tab_jhb_cont)
-title_tab_cont_jhb <- textGrob('', y=unit(0.5,"npc") + 0.5*h_cont_jhb, 
-                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+title_tab_cont_jhb <- textGrob('Johannesburg', y=unit(0.5,"npc") + 0.5*h_cont_jhb, 
+                              vjust=-4, hjust = 0.5, gp=gpar(fontsize=14)) # title
 gt_cont_jhb  <- gTree(children = gList(tab_jhb_cont, title_tab_cont_jhb))
 grid.draw(gt_cont_jhb) # check
 
 # arrange single output
 ml_cont_ct_jhb <- marrangeGrob(list(gt_cont_ct,gt_cont_jhb), nrow=2, ncol=1,
-                              top = '\n\nCapeTown (7 Dimensions) \nand\n Johannesburg (5 Dimensions)')
+                              top = '')
 
 # print to graphic
 jpeg("cont_12_ct_jhb.jpeg")
@@ -686,6 +794,7 @@ ml_cont_ct_jhb
 dev.off()
 
 
+# cant figure out why the image looks so very different to the simple PCA version above...??? expected the same..
 # visualising all the quantitative (including supplementary vars)
 fviz_pca_var(pca_12_ct_supp,
              axes = c(1,2),
@@ -703,6 +812,7 @@ fviz_pca_var(pca_12_ct_supp,
 
 # checking out this function... helpful (for some reason problems in cape town set with vars 47:49 in ct set). Running it on jhb set to help me with interpretation
 library(FactoInvestigate)
+Investigate(pca_12_ct_supp)
 Investigate(pca_12_jhb_supp)
 
 
@@ -857,7 +967,7 @@ fviz_cluster(kmeans_ct, data = scale(scores_ct),
              axes = c(1,2),
              labelsize = 0,
              palette = c("#00AFBB","#2E9FDF", "#E7B800", "#FC4E07", "#2E9FDF"),
-             ggtheme = theme_minimal(),
+             ggtheme = ttheme_minimal(),
              main = "Partitioning Clustering Plot",
              repel = FALSE # TRUE means you have to wait long time....
 )

@@ -60,10 +60,12 @@ kmeans12_simple <- kmeans(set12_simple[,c("newspapers","magazines","radio", "tv"
 
 # add cluster labels to the dataset
 set12c <- set12 %>%
-        mutate(cluster = factor(kmeans12$cluster))
-
-set12c_simple <- set12_simple %>%
-        mutate(cluster = factor(kmeans12_simple$cluster))
+        mutate(cluster = factor(kmeans12$cluster)) %>%
+        dplyr::select(qn, pwgt, cluster, everything())
+# 
+set12c_simple <- set12_simple %>% ### sort out bloody internet thingy
+        mutate(cluster = factor(kmeans12_simple$cluster)) %>%
+        dplyr::select(qn, pwgt, cluster, everything())
 
 saveRDS(set12c, "set12c.rds")
 saveRDS(set12c_simple, "set12c_simple.rds")

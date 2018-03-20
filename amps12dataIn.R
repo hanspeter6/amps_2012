@@ -1,6 +1,7 @@
 # libraries
 library(stringr)
 library(tidyverse)
+library(caret)
 
 print_12 <- read.csv("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/AMPS_2012/csv/amps-2012-newspaper-magazine-readership-v1.1.csv")
 electr_12 <- read.csv("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/AMPS_2012/csv/amps-2012-electronic-media-v1.1.csv")
@@ -491,9 +492,22 @@ set12_simple <- demographics_12 %>%
         left_join(media_vehicles_12_simple) %>%
         filter(metro != 0)
 
+# get rid of zero variances:
+ind_12 <- nearZeroVar(set12[,16:ncol(set12)], saveMetrics = TRUE)
+ind_12_simple <- nearZeroVar(set12_simple[,16:ncol(set12_simple)], saveMetrics = TRUE)
+
+good_set <- set12[,16:ncol(set12)][,!ind_12$zeroVar]
+good_set_simple <- set12_simple[,16:ncol(set12_simple)][,!ind_12_simple$zeroVar]
+
+set12 <- data.frame(cbind(set12[,1:15], good_set))
+set12_simple <- data.frame(cbind(set12_simple[,1:15], good_set_simple))
+
 # scale media type and media vehicles
-set12[,16:309] <- scale(set12[,16:309])
-set12_simple[,16:304] <- scale(set12_simple[,16:304])
+set12[,16:ncol(set12)] <- scale(set12[,16:ncol(set12)])
+set12_simple[,ncol(set12_simple)] <- scale(set12_simple[,ncol(set12_simple)])
+
+# correct stupid anomoly
+set12_simple$internet_engagement_12_simple <- as.vector(set12_simple$internet_engagement_12_simple)
 
 # save them:
 saveRDS(set12, "set12.rds")
