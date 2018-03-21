@@ -114,42 +114,49 @@ saveRDS(nuSet12_JHB, "nuSet12_JHB.rds")
 
 nuSet12_CT <- readRDS("nuSet12_CT.rds")
 nuSet12_JHB <- readRDS("nuSet12_JHB.rds")
+# 
+# ## Determine Number of Factors to Extract
+# ev_ct <- eigen(cor(nuSet12_CT[,12:ncol(nuSet12_CT)]))
+# ap_ct <- parallel(subject=nrow(nuSet12_CT[,12:ncol(nuSet12_CT)]),var=ncol(nuSet12_CT[,12:ncol(nuSet12_CT)]),
+#                rep=100,cent=.05)
+# nS_ct <- nScree(x=ev_ct$values, aparallel=ap_ct$eigen$qevpea)
+# jpeg("nScree_12_ct")
+# plotnScree(nS_ct, main = "Cape Town") # optimal = 7
+# dev.off()
+# 
+# ev_jhb <- eigen(cor(nuSet12_JHB[,12:ncol(nuSet12_JHB)]))
+# ap_jhb <- parallel(subject=nrow(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),var=ncol(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),
+#                rep=100,cent=.05)
+# nS_jhb <- nScree(x=ev_jhb$values, aparallel=ap_jhb$eigen$qevpea)
+# jpeg("nScree_12_jhb")
+# plotnScree(nS_jhb, main = "Johannesburg") # 
+# dev.off()
+# 
+# npc_ct <- nS_ct$Components$noc
+# npc_jhb <- nS_jhb$Components$noc
 
-## Determine Number of Factors to Extract
-ev_ct <- eigen(cor(nuSet12_CT[,12:ncol(nuSet12_CT)]))
-ap_ct <- parallel(subject=nrow(nuSet12_CT[,12:ncol(nuSet12_CT)]),var=ncol(nuSet12_CT[,12:ncol(nuSet12_CT)]),
-               rep=100,cent=.05)
-nS_ct <- nScree(x=ev_ct$values, aparallel=ap_ct$eigen$qevpea)
-jpeg("nScree_12_ct")
-plotnScree(nS_ct, main = "Cape Town") # optimal = 7
-dev.off()
-
-ev_jhb <- eigen(cor(nuSet12_JHB[,12:ncol(nuSet12_JHB)]))
-ap_jhb <- parallel(subject=nrow(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),var=ncol(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),
-               rep=100,cent=.05)
-nS_jhb <- nScree(x=ev_jhb$values, aparallel=ap_jhb$eigen$qevpea)
-jpeg("nScree_12_jhb")
-plotnScree(nS_jhb, main = "Johannesburg") # 
-dev.off()
+# will set them at six for both Jhb and CT for now
+npc_ct <- 6
+npc_jhb <- 6
 
 # creating objects with supplementary variables (qualitative and quantitative) and active one defined:
 set.seed(56)
 pca_12_ct <- PCA(nuSet12_CT,
                  quanti.sup = c(2,4,5,9),
                  quali.sup = c(1,3,6,7,8,10,11),
-                 ncp = nS_ct$Components$noc,
+                 ncp = npc_ct,
                  graph = FALSE)
 set.seed(56)
 pca_12_jhb <- PCA(nuSet12_JHB,
                   quanti.sup = c(2,4,5,9),
                   quali.sup = c(1,3,6,7,8,10,11),
-                  ncp = nS_jhb$Components$noc,
+                  ncp = npc_jhb,
                   graph = FALSE)
 
-# try FactoInvestigate
-library(FactoInvestigate)
-Investigate(pca_12_ct)
-Investigate(pca_12_jhb)
+# # try FactoInvestigate
+# library(FactoInvestigate)
+# Investigate(pca_12_ct)
+# Investigate(pca_12_jhb)
 
 # cape town contributions plots
 jpeg("contributions12_ct_1n2.jpeg")
@@ -182,15 +189,15 @@ fviz_pca_var(pca_12_ct,
 )
 dev.off()
 
-jpeg("contributions12_ct_6n7.jpeg")
-fviz_pca_var(pca_12_ct,
-             axes = c(6,7),
-             col.var="contrib",
-             gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
-             title = "Cape Town",
-             repel = TRUE # Avoid text overlapping
-)
-dev.off()
+# jpeg("contributions12_ct_6n7.jpeg")
+# fviz_pca_var(pca_12_ct,
+#              axes = c(6,7),
+#              col.var="contrib",
+#              gradient.cols = c("#00AFBB", "#E7B800", "#FC4E07"),
+#              title = "Cape Town",
+#              repel = TRUE # Avoid text overlapping
+# )
+# dev.off()
 
 # for the six jhb dimensions
 jpeg("contributions12_jhb_1m2.jpeg")
@@ -237,7 +244,7 @@ contrib_ct <- as.data.frame(pca_12_ct$var$contrib)
 cos2_ct <- as.data.frame(pca_12_ct$var$cos2)
 
 dims_ct <- list()
-for(i in 1:nS_ct$Components$noc) {
+for(i in 1:npc_ct) {
         temp <- data.frame(vehicle_ct, corr = corr_ct[,i], contrib = contrib_ct[,i], cos2 = cos2_ct[,i]) %>%
                 filter(corr > 0.3 | corr < -0.3) %>%
                 arrange(desc(corr))
@@ -252,7 +259,7 @@ contrib_jhb <- as.data.frame(pca_12_jhb$var$contrib, row.names = '')
 cos2_jhb <- as.data.frame(pca_12_jhb$var$cos2, row.names = '')
 
 dims_jhb <- list()
-for(i in 1:nS_jhb$Components$noc) {
+for(i in 1:npc_jhb) {
         temp <- data.frame(vehicle_jhb, corr = corr_jhb[,i], contrib = contrib_jhb[,i], cos2 = cos2_jhb[,i]) %>%
                 filter(corr > 0.3 | corr < -0.3) %>%
                 arrange(desc(corr))
@@ -411,23 +418,23 @@ title_ct_6 <- textGrob("Dimension 6", y=unit(0.5,"npc") + 0.5*h_ct_6,
 gt_ct_6 <- gTree(children = gList(tab_ct_6, title_ct_6)) #,footnote
 # grid.draw(gt_ct_6) # check
 
-# for dimension 7
-tab_ct_7 <- tableGrob(round(dims_ct[[7]], 2), theme = ttheme_minimal(base_size = 10)) # table
+# # for dimension 7
+# tab_ct_7 <- tableGrob(round(dims_ct[[7]], 2), theme = ttheme_minimal(base_size = 10)) # table
+# 
+# grid.newpage()
+# h_ct_7 <- grobHeight(tab_ct_7)
+# w_ct_7 <- grobWidth(tab_ct_7)
+# title_ct_7 <- textGrob("Dimension 7", y=unit(0.5,"npc") + 0.5*h_ct_7, 
+#                        vjust=-5, hjust = 0.2, gp=gpar(fontsize=14)) # title
+# gt_ct_7 <- gTree(children = gList(tab_ct_7, title_ct_7)) #,footnote
+# # grid.draw(gt_ct_7) # check
 
-grid.newpage()
-h_ct_7 <- grobHeight(tab_ct_7)
-w_ct_7 <- grobWidth(tab_ct_7)
-title_ct_7 <- textGrob("Dimension 7", y=unit(0.5,"npc") + 0.5*h_ct_7, 
-                       vjust=-5, hjust = 0.2, gp=gpar(fontsize=14)) # title
-gt_ct_7 <- gTree(children = gList(tab_ct_7, title_ct_7)) #,footnote
-# grid.draw(gt_ct_7) # check
-
-# arrange three Dimensions on one plot and print to interactive graphic with latex
-ml_ct_5n6n7 <- marrangeGrob(list(gt_ct_5,gt_ct_6, gt_ct_7), nrow=2, ncol=2, top = '\nCape Town')
+# arrange two Dimensions on one plot and print to interactive graphic with latex
+ml_ct_5n6 <- marrangeGrob(list(gt_ct_5,gt_ct_6), nrow=1, ncol=2, top = '\nCape Town')
 
 # print to graphic
 jpeg("dims12_ct_5n6.jpeg")
-ml_ct_5n6n7
+ml_ct_5n6
 dev.off()
 
 # JHB 5 and 6:
@@ -467,11 +474,11 @@ dev.off()
 
 ## CAPE TOWN
 # getting all the dimension descriptions
-dimdesc_12_ct <- dimdesc(pca_12_ct, c(1:nS_ct$Components$noc), proba = 1)
+dimdesc_12_ct <- dimdesc(pca_12_ct, c(1:npc_ct), proba = 1)
 
 # categorical supplementaries per dimension ... need to explain and interpret "Estimate"
 cat_coord_12_ct <- list()
-for(i in 1:nS_ct$Components$noc) {
+for(i in 1:npc_ct) {
         temp1 <- dimdesc_12_ct[[i]]$category[order(dimdesc_12_ct[[i]]$category[,1], decreasing = TRUE),]
         temp2 <- temp1[c(1:5, (nrow(temp1) - 4): nrow(temp1)),1]
         cat_coord_12_ct[[i]] <- data.frame(Est = round(temp2, 2))
@@ -552,17 +559,17 @@ gt_cat_ct6 <- gTree(children = gList(tab_ct_cat6, title_tab_cat_ct6))
 
 # grid.draw(gt_cat_ct6) # check  
 
-# Dim 7 CT
-tab_ct_cat7 <- tableGrob(cat_coord_12_ct[[7]], theme = ttheme_minimal(base_size = 12)) # table
-
-grid.newpage()
-h_cat_ct7 <- grobHeight(tab_ct_cat7)
-w_cat_ct7 <- grobWidth(tab_ct_cat7)
-title_tab_cat_ct7 <- textGrob('Dimension 7', y=unit(0.5,"npc") + 0.5*h_cat_ct7, 
-                              vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-gt_cat_ct7 <- gTree(children = gList(tab_ct_cat7, title_tab_cat_ct7))
-
-# grid.draw(gt_cat_ct7) # check
+# # Dim 7 CT
+# tab_ct_cat7 <- tableGrob(cat_coord_12_ct[[7]], theme = ttheme_minimal(base_size = 12)) # table
+# 
+# grid.newpage()
+# h_cat_ct7 <- grobHeight(tab_ct_cat7)
+# w_cat_ct7 <- grobWidth(tab_ct_cat7)
+# title_tab_cat_ct7 <- textGrob('Dimension 7', y=unit(0.5,"npc") + 0.5*h_cat_ct7, 
+#                               vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
+# gt_cat_ct7 <- gTree(children = gList(tab_ct_cat7, title_tab_cat_ct7))
+# 
+# # grid.draw(gt_cat_ct7) # check
 
 # creating two files for these 1st 4 and then 3 more
 # arrange first four
@@ -593,21 +600,21 @@ jpeg("cats12_ct_5n6.jpeg")
 ml_ct_5n6
 dev.off()
 
-ml_ct_7 <- marrangeGrob(list(gt_cat_ct7), nrow=1, ncol=1,
-                          top = '\n\n\n\nCape Town')
-
-# print to graphic
-jpeg("cats12_ct_7.jpeg")
-ml_ct_7
-dev.off()
+# ml_ct_7 <- marrangeGrob(list(gt_cat_ct7), nrow=1, ncol=1,
+#                           top = '\n\n\n\nCape Town')
+# 
+# # print to graphic
+# jpeg("cats12_ct_7.jpeg")
+# ml_ct_7
+# dev.off()
 
 ## JOHANNESBURG
 # getting all the dimension descriptions
-dimdesc_12_jhb <- dimdesc(pca_12_jhb, c(1:nS_jhb$Components$noc), proba = 1)
+dimdesc_12_jhb <- dimdesc(pca_12_jhb, c(1:npc_jhb), proba = 1)
 
 # categorical supplementaries per dimension ... need to explain and interpret "Estimate"
 cat_coord_12_jhb <- list()
-for(i in 1:nS_jhb$Components$noc) {
+for(i in 1:npc_jhb) {
         temp1 <- dimdesc_12_jhb[[i]]$category[order(dimdesc_12_jhb[[i]]$category[,1], decreasing = TRUE),]
         temp2 <- temp1[c(1:5, (nrow(temp1) - 4): nrow(temp1)),1]
         cat_coord_12_jhb[[i]] <- data.frame(Est = round(temp2, 2))
@@ -688,17 +695,6 @@ gt_cat_jhb6 <- gTree(children = gList(tab_jhb_cat6, title_tab_cat_jhb6))
 
 # grid.draw(gt_cat_jhb6) # check  
 
-# # Dim 7 CT
-# tab_ct_cat7 <- tableGrob(cat_coord_12_ct[[7]], theme = ttheme_minimal(base_size = 12)) # table
-# 
-# grid.newpage()
-# h_cat_ct7 <- grobHeight(tab_ct_cat7)
-# w_cat_ct7 <- grobWidth(tab_ct_cat7)
-# title_tab_cat_ct7 <- textGrob('Dimension 7', y=unit(0.5,"npc") + 0.5*h_cat_ct7, 
-#                               vjust=-7, hjust = 0.3, gp=gpar(fontsize=14)) # title
-# gt_cat_ct7 <- gTree(children = gList(tab_ct_cat7, title_tab_cat_ct7))
-# 
-# # grid.draw(gt_cat_ct7) # check
 
 # creating two files for these 1st 4 and then 3 more
 # arrange first four
@@ -729,27 +725,16 @@ jpeg("cats12_jhb_5n6.jpeg")
 ml_jhb_5n6
 dev.off()
 
-# ml_ct_7 <- marrangeGrob(list(gt_cat_ct7), nrow=1, ncol=1,
-#                         top = '\n\n\n\nCape Town')
-# 
-# # print to graphic
-# jpeg("cats12_ct_7.jpeg")
-# ml_ct_7
-# dev.off()
-
-
-
-
 # continuous supplementaries per dimension...explain difference... blah blah
 # cape town:
 
 cont_corrs_12_ct <- matrix(0, nrow = 4, ncol = 0)
-for(i in 1:nS_ct$Components$noc) {
+for(i in 1:npc_ct) {
         temp1 <- as.matrix(dimdesc_12_ct[[i]]$quanti)
         temp2 <- temp1[which(rownames(temp1) %in% c("age", "edu", "hh_inc", "lsm")),]
         cont_corrs_12_ct <- as.data.frame(round(cbind(cont_corrs_12_ct, temp2), 2))
 }
-names(cont_corrs_12_ct) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal", "Dim6", "pVal", "Dim7", "pVal" )
+names(cont_corrs_12_ct) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal", "Dim6", "pVal" )
 
 # print to file for graphic:
 
@@ -761,17 +746,17 @@ w_cont_ct <- grobWidth(tab_ct_cont)
 title_tab_cont_ct <- textGrob('Cape Town', y=unit(0.5,"npc") + 0.3*h_cont_ct, 
                         vjust=-4, hjust = 0.5, gp=gpar(fontsize=14)) # title
 gt_cont_ct<- gTree(children = gList(tab_ct_cont, title_tab_cont_ct)) #
-grid.draw(gt_cont_ct) # check
+# grid.draw(gt_cont_ct) # check
 
 # Johannesburg:
-dimdesc_12_jhb <- dimdesc(pca_12_jhb, c(1:nS_jhb$Components$noc), proba = 1)
+dimdesc_12_jhb <- dimdesc(pca_12_jhb, c(1:npc_jhb), proba = 1)
 cont_corrs_12_jhb <- matrix(0, nrow = 4, ncol = 0)
-for(i in 1:nS_jhb$Components$noc) {
+for(i in 1:npc_jhb) {
         temp1 <- as.matrix(dimdesc_12_jhb[[i]]$quanti)
         temp2 <- temp1[which(rownames(temp1) %in% c("age", "edu", "hh_inc", "lsm")),]
         cont_corrs_12_jhb <- as.data.frame(round(cbind(cont_corrs_12_jhb, temp2), 2))
 }
-names(cont_corrs_12_jhb) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal" )
+names(cont_corrs_12_jhb) <- c("Dim1", "pVal","Dim2", "pVal", "Dim3", "pVal", "Dim4", "pVal", "Dim5", "pVal", "Dim6", "pVal" )
 
 # print to file for graphic:
 tab_jhb_cont <- tableGrob(cont_corrs_12_jhb, theme = ttheme_minimal(base_size = 8)) # table
@@ -782,7 +767,7 @@ w_cont_jhb <- grobWidth(tab_jhb_cont)
 title_tab_cont_jhb <- textGrob('Johannesburg', y=unit(0.5,"npc") + 0.5*h_cont_jhb, 
                               vjust=-4, hjust = 0.5, gp=gpar(fontsize=14)) # title
 gt_cont_jhb  <- gTree(children = gList(tab_jhb_cont, title_tab_cont_jhb))
-grid.draw(gt_cont_jhb) # check
+# grid.draw(gt_cont_jhb) # check
 
 # arrange single output
 ml_cont_ct_jhb <- marrangeGrob(list(gt_cont_ct,gt_cont_jhb), nrow=2, ncol=1,
