@@ -24,8 +24,6 @@ personal_12_labels <- readLines("/Users/HansPeter/Dropbox/Statistics/UCTDataScie
 lsm_12_labels <- readLines("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/AMPS_2012/csv/metadata/variable_labels/amps-2012-lsm-saarf-segmentations-v1.1_variable_labels.txt")
 lifestage_12_labels <- readLines("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/AMPS_2012/csv/metadata/variable_labels/amps-2012-lifestage-v1.1_variable_labels.txt")
 attitudes_12_labels <- readLines("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/AMPS_2012/csv/metadata/variable_labels/amps-2012-attitudes-v1.1_variable_labels.txt")
-
-
 # 
 save(print_12_labels, electr_12_labels, internet_12_labels, demogrs_12_labels, personal_12_labels, lsm_12_labels, lifestage_12_labels, attitudes_12_labels, file = "labels_12.RData")
 
@@ -33,75 +31,97 @@ load("labels_12.RData")
 
 ## 1st Print (newspapers and magazines) Media Set
 
-# names_print_12 <- str_subset(print_12_labels, 'Number of different issues usually read or page through') %>%
-#         str_replace('.+\\s-', '')
+names_issues_print_12 <- str_subset(print_12_labels, 'Number of different issues usually read or page through') %>%
+        str_replace('.+\\s-', '') %>%
+        str_trim()
+vars_issues_print_12 <- str_subset(print_12_labels, 'Number of different issues usually read or page through') %>%
+        str_replace('Number\\sof\\sdifferent.+', '') %>%
+        str_trim()
 
-saveRDS(names_print_12, "names_print_12.rds")
+##Newspapers
+# fix names and get rid of some and save
+names_newspapers_12_issues <- names_issues_print_12[c(1:52)]
+# fix(names_newspapers_12_issues)
+# saveRDS(names_newspapers_12_issues, "names_newspapers_12_issues.rds")
+names_newspapers_12_issues <- readRDS("names_newspapers_12_issues.rds")
 
-names_print_12 <- readRDS("names_print_12.rds")
+# vector of variables
+vars_newspapers_12_issues <- vars_issues_print_12[c(1:52)]
+issues_newspapers_12 <- print_12[,vars_newspapers_12_issues]
 
-names_dailies_12 <- names_print_12[1:22]
-names_biweeklies_12 <- names_print_12[23]
-names_weeklies_12 <- names_print_12[24:52]
+# Magazines
+# fix names and get rid of some (including MNet guides and save
+names_magazines_12_issues <- names_issues_print_12[c(54:66,68:78,80:91,93:98,100:114,117:139,141:148,151:162,165:168)]
+# fix(names_magazines_12_issues)
+# saveRDS(names_magazines_12_issues, "names_magazines_12_issues.rds")
+names_magazines_12_issues <- readRDS("names_magazines_12_issues.rds")
 
-# # NBNB: Not community papers in 2012...
-# names_community_cape_town <- names_print[40:51]
-# names_community_restCape <- names_print[52:61]
-# names_community_FreeState <- names_print[62:66]
-# names_community_NWest <- names_print[67:68]
-# names_community_Jhb <- names_print[69]
-# names_community_ERand <- names_print[70:71]
-# names_community_KZn <- names_print[72:74]
+# vector of variables
+vars_magazines_12_issues <- vars_issues_print_12[c(54:66,68:78,80:91,93:98,100:114,117:139,141:148,151:162,165:168)]
+issues_magazines_12 <- print_12[,vars_magazines_12_issues]
 
-names_mags_weekly_12 <- names_print_12[53:65]
-names_fortnightly_mags_12 <- names_print_12[66:67]
-names_monthly_news_12 <- names_print_12[68:69]
-names_monthly_mags_12 <- names_print_12[70:147]
+## THOUROUGHLY
+names_thorough_print_12 <- str_subset(print_12_labels, 'How thoroughly respondent usually read') %>%
+        str_replace('.+\\s-', '') %>%
+        str_replace("\\'",'') %>%
+        str_trim()
+vars_thorough_print_12 <- str_subset(print_12_labels, 'How thoroughly respondent usually read') %>%
+        str_replace('How\\sthoroughly.+', '') %>%
+        str_trim()
 
-names_alt_monthly_12 <- names_print_12[150:161]
-names_quarterly_mags_12 <- names_print_12[164:168]
+##Newspapers
+# get names and get rid of some and save (already sorted above)
+# names_newspapers_12_thorough <- names_thorough_print_12[c(1:39,77)]
+# fix(names_newspapers_12_thorough)
+# saveRDS(names_newspapers_12_issues, "names_newspapers_12_issues.rds")
 
-names_monthly_store_mags_12 <- names_print_12[148:149]
-names_alt_month_store_mags_12 <- names_print_12[162:163]
-names_quarterly_store_mags_12 <- names_print_12[169:172]
+# vector of variables
+vars_newspapers_12_thorough <- vars_thorough_print_12[c(1:52)]
+thorough_newspapers_12 <- print_12[,vars_newspapers_12_thorough]
+thorough_newspapers_12 <- 7 - thorough_newspapers_12
 
-# create print dataset:
-issues_12 <- print_12[,str_detect(names(print_12), 'ca[345678]co\\d{2}')]
-issues_12 <- issues_12[,-which(names(issues_12) == "ca6co40")] # get rid of one variable name = '0'. All NAs
-names(issues_12) <- names_print_12
+# Magazines
+# fix names and get rid of some and save
+# names_magazines_12_thorough <- names_thorough_print_12[c(77:99,103:107,109:157)]
+# fix(names_magazines_12_issues)
+# saveRDS(names_magazines_12_issues, "names_magazines_12_issues.rds")
 
-
-saveRDS(issues_12, "issues_12.rds")
-
-thorough_12 <- print_12[,str_detect(names(print_12), 'ca((34)|(35)|(36)|(37)|(38)|(39))co\\d{2}')]
-thorough_12 <- thorough_12[,-which(names(thorough_12) == 'ca38co50'| names(thorough_12) == 'ca38co51')] # get rid of six-week mags (zigzag and saltwater girl) not in issues
-
-names(thorough_12) <- names_print_12
+# vector of variables
+vars_magazines_12_thorough <- vars_thorough_print_12[c(54:66,68:78,80:91,93:98,100:114,117:139,141:148,151:162,165:168)]
+thorough_magazines_12 <- print_12[,vars_magazines_12_thorough]
 
 # # need to reverse numbering to serve as weights (see value_lables text file):
-thorough_12 <- 7 - thorough_12
+thorough_magazines_12 <- 7 - thorough_magazines_12
+saveRDS(thorough_magazines_12, "thorough_magazines_12.rds")
 
-saveRDS(thorough_12, "thorough_12.rds")
-# create single print dataset:
+# create datasets ...for newspapers and magazines:
+newspapers_engagement_12 <- issues_newspapers_12 * thorough_newspapers_12
+names(newspapers_engagement_12) <- names_newspapers_12_issues
+magazines_engagement_12 <- issues_magazines_12 * thorough_magazines_12
+names(magazines_engagement_12) <- names_magazines_12_issues
 
-print_engagement_12 <- issues_12 * thorough_12
-print_engagement_12_simple <- issues_12
+newspapers_engagement_12_simple <- issues_newspapers_12
+names(newspapers_engagement_12_simple) <- names_newspapers_12_issues
+magazines_engagement_12_simple <- issues_magazines_12
+names(magazines_engagement_12_simple) <- names_magazines_12_issues
 
-# replace nas with zero's:
-print_engagement_12[is.na(print_engagement_12)] <- 0
-print_engagement_12_simple[is.na(print_engagement_12_simple)] <- 0
+# # # replace NAs with zeros
+newspapers_engagement_12[is.na(newspapers_engagement_12)] <- 0
+magazines_engagement_12[is.na(magazines_engagement_12)] <- 0
 
-saveRDS(print_engagement_12, "print_engagement_12.rds")
-saveRDS(print_engagement_12_simple, "print_engagement_12_simple.rds")
+newspapers_engagement_12_simple[is.na(newspapers_engagement_12_simple)] <- 0
+magazines_engagement_12_simple[is.na(magazines_engagement_12_simple)] <- 0
 
-print_engagement_12 <- readRDS("print_engagement_12.rds")
-print_engagement_12_simple <- readRDS("print_engagement_12_simple.rds")
+# CLEAN UP
+# for newspapers: include Herald on Sat as Other
+other.news <- as.vector(apply(newspapers_engagement_12[,c(38,51)], 1, mean))
+newspapers_engagement_12 <- newspapers_engagement_12 %>%
+        mutate(other.news = other.news)
+newspapers_engagement_12 <- newspapers_engagement_12[,-c(38,51)]
 
-newspapers_engagement_12 <- print_engagement_12[,c(1:52,68,69)]
-magazines_engagement_12 <- print_engagement_12[,c(53:67,70:172)]
-newspapers_engagement_12_simple <- print_engagement_12_simple[,c(1:52,68,69)]
-magazines_engagement_12_simple <- print_engagement_12_simple[,c(53:67,70:172)]
+# for magazines - deal with it in vehicle_cleaning project
 
+# save them
 saveRDS(newspapers_engagement_12, "newspapers_engagement_12.rds")
 saveRDS(magazines_engagement_12, "magazines_engagement_12.rds")
 saveRDS(newspapers_engagement_12_simple, "newspapers_engagement_12_simple.rds")
@@ -130,10 +150,9 @@ names_radio_12_y <- electr_12_labels %>%
         str_replace('.+listened\\sto\\syesterday\\s-\\s','')
 names_radio_12_y <- names_radio_12_y[-c(64,65)] # get rid of "unsure" and "none"
 
-
 # # most radio stations in 4 weeks, so use that to create names list
 # names_radio_12 <- names_radio_12_4w
-# fix(names_radio_12)
+fix(names_radio_12)
 saveRDS(names_radio_12, "names_radio_12.rds")
 names_radio_12 <- readRDS('names_radio_12.rds')
 
@@ -174,35 +193,37 @@ saveRDS(radio_engagement_12, "radio_engagement_12.rds")
 radio_engagement_12 <- readRDS("radio_engagement_12.rds")
 
 ## TV (this year, included specific dstv and toptv channels (will include them))
-names_tv_12 <- electr_12_labels %>%
-        str_subset('Watched.+4\\sWEEKS') %>%
-        str_replace('.+Watched\\s','') %>%
-        str_replace('in\\sthe\\sPAST\\s4\\sWEEKS','') %>%
-        str_trim()
+names_tv_12 <- c("e tv",
+                 "SABC 1",
+                 "SABC 2",
+                 "SABC 3",
+                 "IKZN TV",
+                 "Bay TV",
+                 "Cape Town TV",
+                 "Soweto TV",
+                 "Top TV",
+                 "DSTV",
+                 "Other TV")
 
 saveRDS(names_tv_12, "names_tv_12.rds")
 names_tv_12 <- readRDS("names_tv_12.rds")
 # fix(names_tv_12)
 # want to isolate only past 4 weeks and get rid of ("UNSURE", and "no TV")
-tv4weeks_12 <- electr_12[,c('ca45co30_1',
-                            'ca45co30_2',
-                            'ca45co30_3',
-                            'ca45co30_4',
-                            'ca45co30_5',
-                            'ca45co30_6',
-                            'ca45co30_7',
-                            'ca45co30_8',
-                            'ca45co30_9',
-                            'ca45co31_0',
-                            'ca45co72_3',
-                            'ca45co72_8',
-                            'ca45co31_4'
+tv4weeks_12 <- electr_12[,c('ca45co30_1', #e tv
+                            'ca45co30_4', # sabc 1
+                            'ca45co30_5', # sabc 2
+                            'ca45co30_6', # sabc 3
+                            'ca45co30_7', # IKZN
+                            'ca45co30_8', # Bay
+                            'ca45co30_9', # Cape Town
+                            'ca45co31_0', # Soweto
+                            'ca45co72_3', # top tv
+                            'ca45co72_8', # dstv
+                            'ca45co31_4' # other tv
                             )] 
 
 # want to isolate only past 7 days...
 tv7days_12 <- electr_12[,c('ca45co32_1',
-                           'ca45co32_2',
-                           'ca45co32_3',
                            'ca45co32_4',
                            'ca45co32_5',
                            'ca45co32_6',
@@ -215,10 +236,8 @@ tv7days_12 <- electr_12[,c('ca45co32_1',
                            'ca45co33_4'
                            )] 
 
-# want to isolate only yesterday...(indexes w.r.t 4weeks that are missing here: 7, 10, 13 (other))
+# want to isolate only yesterday...(indexes w.r.t 4weeks that are missing here: 5, 8, 11 (other))
 tvYesterday_12 <- electr_12[,c('ca45co34_1',
-                               'ca45co34_2',
-                               'ca45co34_3',
                                'ca45co34_4',
                                'ca45co34_5',
                                'ca45co34_6',
@@ -231,7 +250,7 @@ tvYesterday_12 <- electr_12[,c('ca45co34_1',
 # combining into a tv engagement dataset (using tv4weeks_12 as basis):
 
 tv_engagement_12 <- tv4weeks_12 + tv7days_12
-tv_engagement_12[,-c(7,10,13)] <- tv_engagement_12[,-c(7,10,13)] + tvYesterday_12
+tv_engagement_12[,-c(5,8,11)] <- tv_engagement_12[,-c(5,8,11)] + tvYesterday_12
 names(tv_engagement_12) <- names_tv_12
 
 saveRDS(tv_engagement_12, "tv_engagement_12.rds")

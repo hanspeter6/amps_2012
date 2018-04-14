@@ -1,3 +1,5 @@
+#https://stackoverflow.com/questions/17273949/clustered-bar-plot-in-r-using-ggplot2
+
 # libraries
 library(stringr)
 library(tidyverse)
@@ -40,6 +42,12 @@ ind_jhb <- nearZeroVar(set12_JHB[,23:ncol(set12_JHB)], saveMetrics = TRUE)
 
 good_ct <- set12_CT[,23:ncol(set12_CT)][,!ind_ct$nzv]
 good_jhb <- set12_JHB[,23:ncol(set12_JHB)][,!ind_jhb$nzv]
+
+catSet12_CT <- data.frame(cbind(set12_CT[,1:22], good_ct))
+catSet12_JHB <- data.frame(cbind(set12_JHB[,1:22], good_jhb))
+
+saveRDS(catSet12_CT, "catSet12_CT.rds")
+saveRDS(catSet12_JHB, "catSet12_JHB.rds")
 
 nuSet12_CT <- data.frame(cbind(set12_CT[,1:22], good_ct))
 nuSet12_JHB <- data.frame(cbind(set12_JHB[,1:22], good_jhb))
@@ -152,6 +160,12 @@ pca_12_jhb <- PCA(nuSet12_JHB,
                   quali.sup = c(1,3,6,7,8,10,11),
                   ncp = npc_jhb,
                   graph = FALSE)
+
+# save for later use:
+
+saveRDS(pca_12_ct, "pca_12_ct.rds")
+saveRDS(pca_12_jhb, "pca_12_jhb.rds")
+
 
 # # try FactoInvestigate
 # library(FactoInvestigate)
