@@ -21,7 +21,7 @@ library(ggplot2)
 
 # load datafiles 
 set12c <- readRDS("set12c.rds")
-set12c_simple <- readRDS("set12c_simple.rds")
+# set12c_simple <- readRDS("set12c_simple.rds")
 
 # LEVEL 2
 
@@ -36,7 +36,7 @@ set12_CT <- set12c %>% filter(metro == 1)
 # isolate johannesburg
 set12_JHB <- set12c %>% filter(metro == 7)
 
-# get rid of near zero variances:
+# identify and extract zero variances to avoid problems later on:
 ind_ct <- nearZeroVar(set12_CT[,23:ncol(set12_CT)], saveMetrics = TRUE)
 ind_jhb <- nearZeroVar(set12_JHB[,23:ncol(set12_JHB)], saveMetrics = TRUE)
 
@@ -68,7 +68,7 @@ nuSet12_JHB$lsm <- scale(as.numeric(nuSet12_JHB$lsm))
 # Cape Town
 nuSet12_CT$cluster <- factor(nuSet12_CT$cluster,
                                         levels = c(1,2,3,4),
-                                        labels = c("heavy all media", "internet lead", "light all media", "internet lag"))
+                                        labels = c("cluster1", "cluster2", "cluster3", "cluster4"))
 nuSet12_CT$sex <- factor(nuSet12_CT$sex,
                                  levels = c(1,2),
                                  labels = c("male", "female"))
@@ -92,7 +92,7 @@ nuSet12_CT$attitudes <- factor(nuSet12_CT$attitudes,
 # 
 nuSet12_JHB$cluster <- factor(nuSet12_JHB$cluster,
                              levels = c(1,2,3,4),
-                             labels = c("heavy all media", "internet lead", "light all media", "internet lag"))
+                             labels = c("cluster1", "cluster2", "cluster3", "cluster4"))
 nuSet12_JHB$sex <- factor(nuSet12_JHB$sex,
                                   levels = c(1,2),
                                   labels = c("male", "female"))
@@ -113,8 +113,8 @@ nuSet12_JHB$attitudes <- factor(nuSet12_JHB$attitudes,
                                         labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
 
 # focussing only on the variable I intend to use in this section:
-nuSet12_CT <- nuSet12_CT[,-c(1:2,9:11, 17:22)]
-nuSet12_JHB <- nuSet12_JHB[,-c(1:2,9:11, 17:22)]
+nuSet12_CT <- nuSet12_CT[,-c(1:2,9:13,15:22)]
+nuSet12_JHB <- nuSet12_JHB[,-c(1:2,9:13,15:22)]
 
 # saving these objects:
 saveRDS(nuSet12_CT, "nuSet12_CT.rds")
@@ -124,20 +124,20 @@ nuSet12_CT <- readRDS("nuSet12_CT.rds")
 nuSet12_JHB <- readRDS("nuSet12_JHB.rds")
 # 
 # ## Determine Number of Factors to Extract
-# ev_ct <- eigen(cor(nuSet12_CT[,12:ncol(nuSet12_CT)]))
-# ap_ct <- parallel(subject=nrow(nuSet12_CT[,12:ncol(nuSet12_CT)]),var=ncol(nuSet12_CT[,12:ncol(nuSet12_CT)]),
+# ev_ct <- eigen(cor(nuSet12_CT[,8:ncol(nuSet12_CT)]))
+# ap_ct <- parallel(subject=nrow(nuSet12_CT[,8:ncol(nuSet12_CT)]),var=ncol(nuSet12_CT[,8:ncol(nuSet12_CT)]),
 #                rep=100,cent=.05)
 # nS_ct <- nScree(x=ev_ct$values, aparallel=ap_ct$eigen$qevpea)
 # jpeg("nScree_12_ct")
-# plotnScree(nS_ct, main = "Cape Town") # optimal = 7
+# plotnScree(nS_ct, main = "Cape Town") # optimal = 6
 # dev.off()
 # 
-# ev_jhb <- eigen(cor(nuSet12_JHB[,12:ncol(nuSet12_JHB)]))
-# ap_jhb <- parallel(subject=nrow(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),var=ncol(nuSet12_JHB[,12:ncol(nuSet12_JHB)]),
+# ev_jhb <- eigen(cor(nuSet12_JHB[,8:ncol(nuSet12_JHB)]))
+# ap_jhb <- parallel(subject=nrow(nuSet12_JHB[,8:ncol(nuSet12_JHB)]),var=ncol(nuSet12_JHB[,8:ncol(nuSet12_JHB)]),
 #                rep=100,cent=.05)
 # nS_jhb <- nScree(x=ev_jhb$values, aparallel=ap_jhb$eigen$qevpea)
 # jpeg("nScree_12_jhb")
-# plotnScree(nS_jhb, main = "Johannesburg") # 
+# plotnScree(nS_jhb, main = "Johannesburg") # optimal = 5
 # dev.off()
 # 
 # npc_ct <- nS_ct$Components$noc
@@ -150,19 +150,18 @@ npc_jhb <- 6
 # creating objects with supplementary variables (qualitative and quantitative) and active one defined:
 set.seed(56)
 pca_12_ct <- PCA(nuSet12_CT,
-                 quanti.sup = c(2,4,5,9),
-                 quali.sup = c(1,3,6,7,8,10,11),
+                 quanti.sup = c(2,4,5,7),
+                 quali.sup = c(1,3,6),
                  ncp = npc_ct,
                  graph = FALSE)
 set.seed(56)
 pca_12_jhb <- PCA(nuSet12_JHB,
-                  quanti.sup = c(2,4,5,9),
-                  quali.sup = c(1,3,6,7,8,10,11),
+                  quanti.sup = c(2,4,5,7),
+                  quali.sup = c(1,3,6),
                   ncp = npc_jhb,
                   graph = FALSE)
 
 # save for later use:
-
 saveRDS(pca_12_ct, "pca_12_ct.rds")
 saveRDS(pca_12_jhb, "pca_12_jhb.rds")
 
@@ -313,9 +312,6 @@ ml_ct_1n2
 dev.off()
 
 # JHB 1 & 2:
-# for dimension 1
-# given so many, will cut it off at 0.4:
-
 tab_jhb_1 <- tableGrob(round(dims_jhb[[1]], 2), theme = ttheme_minimal(base_size = 10)) # table
 
 grid.newpage()
@@ -791,6 +787,9 @@ ml_cont_ct_jhb <- marrangeGrob(list(gt_cont_ct,gt_cont_jhb), nrow=2, ncol=1,
 jpeg("cont_12_ct_jhb.jpeg")
 ml_cont_ct_jhb
 dev.off()
+
+
+
 
 
 # cant figure out why the image looks so very different to the simple PCA version above...??? expected the same..

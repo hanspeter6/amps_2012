@@ -19,7 +19,7 @@ library(ggplot2)
 
 #  read in datasets
 set12 <- readRDS("set12.rds")
-set12_simple <- readRDS("set12_simple.rds")
+# set12_simple <- readRDS("set12_simple.rds")
 
 # consider some correlations
 png('corTypePlot2012.png')
@@ -35,12 +35,12 @@ dev.off()
 
 ## consider kmeans
 wss <- vector()
-set.seed(5)
+set.seed(123)
 for(k in c(1,2,3,4,5,6)) {
         temp <- kmeans(set12[,c("newspapers","magazines","radio", "tv", "internet", "all")],
                        centers = k,
-                       nstart = 10,
-                       iter.max = 20)
+                       nstart = 5,
+                       iter.max = 30)
         wss <- append(wss,temp$tot.withinss)
 }
 
@@ -48,30 +48,32 @@ png('kmeansTypePlot2012.png')
 plot(c(1,2,3,4,5,6), wss, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
 dev.off()
 
-set.seed(56)
+set.seed(123)
 kmeans12 <- kmeans(set12[,c("newspapers","magazines","radio", "tv", "internet","all")],
                    centers = 4,
-                   nstart = 20)
+                   nstart = 5,
+                   iter.max = 100)
 
-set.seed(56)
-kmeans12_simple <- kmeans(set12_simple[,c("newspapers","magazines","radio", "tv", "internet", "all")],
-                   centers = 4,
-                   nstart = 20)
+table(kmeans12$cluster)
+# set.seed(56)
+# kmeans12_simple <- kmeans(set12_simple[,c("newspapers","magazines","radio", "tv", "internet", "all")],
+#                    centers = 4,
+#                    nstart = 20)
 
 # add cluster labels to the dataset
 set12c <- set12 %>%
         mutate(cluster = factor(kmeans12$cluster)) %>%
         dplyr::select(qn, pwgt, cluster, everything())
-# 
-set12c_simple <- set12_simple %>% ### sort out bloody internet thingy
-        mutate(cluster = factor(kmeans12_simple$cluster)) %>%
-        dplyr::select(qn, pwgt, cluster, everything())
+# # 
+# set12c_simple <- set12_simple %>% ### sort out bloody internet thingy
+#         mutate(cluster = factor(kmeans12_simple$cluster)) %>%
+#         dplyr::select(qn, pwgt, cluster, everything())
 
 saveRDS(set12c, "set12c.rds")
-saveRDS(set12c_simple, "set12c_simple.rds")
+# saveRDS(set12c_simple, "set12c_simple.rds")
 
 set12c <- readRDS("set12c.rds")
-set12c_simple <- readRDS("set12c_simple.rds")
+# set12c_simple <- readRDS("set12c_simple.rds")
 
 # some plots
 # boxplots of clusters and media types
