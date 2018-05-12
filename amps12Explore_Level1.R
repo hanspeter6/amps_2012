@@ -1,28 +1,27 @@
-# loading packages
-library(stringr)
+# # loading packages
+# library(stringr)
 library(tidyverse)
 library(corrplot)
 library(rpart)
 library(rpart.plot)
-library(scatterplot3d)
-library(rgl)
-library(kohonen)
+# library(scatterplot3d)
+# library(rgl)
+# library(kohonen)
 library(caret)
 library(randomForest)
 library(MASS)
-library(CCA)
-library(nFactors)
-library(FactoMineR)
-library(factoextra)
+# library(CCA)
+# library(nFactors)
+# library(FactoMineR)
+# library(factoextra)
 library(gridExtra)
 library(ggplot2)
 
 #  read in datasets
 set12 <- readRDS("set12.rds")
-set12_simple <- readRDS("set12_simple.rds")
 
 # consider some correlations
-png('corTypePlot2012.png')
+jpeg('corTypePlot2012.jpeg')
 corrplot(cor(set12[,c("newspapers","magazines","radio", "tv", "internet")]),
          method = "pie",
          order = "hclust",
@@ -44,7 +43,7 @@ for(k in c(1,2,3,4,5,6)) {
         wss <- append(wss,temp$tot.withinss)
 }
 
-png('kmeansTypePlot2012.png')
+jpeg('kmeansTypePlot2012.jpeg')
 plot(c(1,2,3,4,5,6), wss, type = "b", xlab = "k-values", ylab = "total within sum of squares" )
 dev.off()
 
@@ -55,118 +54,95 @@ kmeans12 <- kmeans(set12[,c("newspapers","magazines","radio", "tv", "internet","
                    iter.max = 100)
 
 table(kmeans12$cluster)
-set.seed(123)
-kmeans12_simple <- kmeans(set12_simple[,c("newspapers","magazines","radio", "tv", "internet", "all")],
-                   centers = 4,
-                   nstart = 5,
-                   iter.max = 100)
-table(kmeans12_simple$cluster)
 
 # add cluster labels to the dataset
 set12c <- set12 %>%
         mutate(cluster = factor(kmeans12$cluster)) %>%
         dplyr::select(qn, pwgt, cluster, everything())
-#
-set12c_simple <- set12_simple %>%
-        mutate(cluster = factor(kmeans12_simple$cluster)) %>%
-        dplyr::select(qn, pwgt, cluster, everything())
 
+# save them
 saveRDS(set12c, "set12c.rds")
-saveRDS(set12c_simple, "set12c_simple.rds")
-
+# read back
 set12c <- readRDS("set12c.rds")
-set12c_simple <- readRDS("set12c_simple.rds")
 
 ## some plots for simple version to use in longitudinal stuff later...
 # boxplots of clusters and media types
-p1 <- ggplot(set12c_simple, aes(cluster, all, fill = cluster)) +
+p1 <- ggplot(set12c, aes(cluster, all, fill = cluster)) +
         geom_boxplot() +
         guides(fill = FALSE) +
         labs(title = "all")
-p2 <- ggplot(set12c_simple, aes(cluster, newspapers, fill = cluster)) +
+p2 <- ggplot(set12c, aes(cluster, newspapers, fill = cluster)) +
         geom_boxplot() +
         guides(fill = FALSE) +
         labs(title = "newspapers")
-p3 <- ggplot(set12c_simple, aes(cluster, magazines, fill = cluster)) +
+p3 <- ggplot(set12c, aes(cluster, magazines, fill = cluster)) +
         geom_boxplot() +
         guides(fill = FALSE) +
         labs(title = "magazines")
-p4 <- ggplot(set12c_simple, aes(cluster, radio, fill = cluster)) +
+p4 <- ggplot(set12c, aes(cluster, radio, fill = cluster)) +
         geom_boxplot() +
         guides(fill = FALSE) +
         labs(title = "radio")
-p5 <- ggplot(set12c_simple, aes(cluster, tv, fill = cluster)) +
+p5 <- ggplot(set12c, aes(cluster, tv, fill = cluster)) +
         geom_boxplot() +
         guides(fill = FALSE) +
         labs(title = "tv")
-p6 <- ggplot(set12c_simple, aes(cluster, internet, fill = cluster)) +
+p6 <- ggplot(set12c, aes(cluster, internet, fill = cluster)) +
         geom_boxplot() +
         guides(fill = FALSE) +
         labs(title = "internet")
 
-jpeg('typeBoxPlots_12_simple.jpeg', quality = 100, type = "cairo")
+jpeg('typeBoxPlots_12.jpeg', quality = 100, type = "cairo")
 grid.arrange(p1, p2, p3, p4, p5, p6,  ncol=3, nrow = 2)
 dev.off()
 
 # try to make sense of demographics
-d1 <- ggplot(set12c_simple, aes(race, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "race", y = "", x = "") +
-        scale_x_discrete(labels=c("black", "coloured", "indian", "white"))
-d2 <- ggplot(set12c_simple, aes(edu, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "education", y = "", x = "") +
-        scale_x_discrete(labels=c("<matric", "matric",">matric"))
-d3 <- ggplot(set12c_simple, aes(age, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "age", y = "", x = "") +
-        scale_x_discrete(labels=c("15-24","25-44", "45-54","55+"))
-d4 <- ggplot(set12c_simple, aes(lsm, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "lsm", y = "", x = "") +
-        scale_x_discrete(labels=c("1-2", "3-4", "5-6", "7-8", "9-10"))
 
-jpeg('typeDemogPlots1_12_simple.jpeg', quality = 100, type = "cairo")
-grid.arrange(d1, d2, d3, d4, ncol=2, nrow = 2)
+# size of each cluster
+ggplot(data = set12c, aes(x = cluster, fill = cluster)) +
+        geom_bar(stat = "count") +
+        guides(fill = FALSE)
+
+# demographics by cluster
+d1 <- ggplot(data = set12c, aes(x = cluster, fill = race)) +
+        geom_bar(stat = "count", position = position_dodge()) +
+        scale_fill_discrete(labels=c("black", "coloured", "indian", "white")) +
+        labs(title = "Population Group 2012")
+
+d2 <- ggplot(data = set12c, aes(x = cluster, fill = edu)) +
+        geom_bar(stat = "count", position = position_dodge()) +
+        scale_fill_discrete(labels=c("<matric", "matric",">matric")) +
+        labs(title = "Education Level 2012")
+
+d3 <- ggplot(data = set12c, aes(x = cluster, fill = age)) +
+        geom_bar(stat = "count", position = position_dodge()) +
+        scale_fill_discrete(labels=c("15-24","25-44", "45-54","55+")) +
+        labs(title = "Age Group 2012")
+
+d4 <- ggplot(data = set12c, aes(x = cluster, fill = lsm)) +
+        geom_bar(stat = "count", position = position_dodge()) +
+        scale_fill_discrete(labels=c("1-2", "3-4", "5-6", "7-8", "9-10")) +
+        labs(title = "LSM 2012")
+
+d5 <- ggplot(data = set12c, aes(x = cluster, fill = sex)) +
+        geom_bar(stat = "count", position = position_dodge()) +
+        scale_fill_discrete(labels=c("male", "female")) +
+        labs(title = "Gender 2012")
+
+d6 <- ggplot(data = set12c, aes(x = cluster, fill = hh_inc)) +
+        geom_bar(stat = "count", position = position_dodge()) +
+        scale_fill_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000")) +
+        labs(title = "Household Income 2012")
+
+jpeg('typeDemogPlots_12.jpeg', quality = 100, type = "cairo")
+grid.arrange(d1, d2, d3, d4, d5, d6, ncol=2, nrow = 3)
 dev.off()
-
-d5 <- ggplot(set12c_simple, aes(sex, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "gender", y = "", x = "") +
-        scale_x_discrete(labels=c("male", "female"))
-d6 <- ggplot(set12c_simple, aes(hh_inc, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "household income", y = "", x = "") +
-        scale_x_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000"))
-d7 <- ggplot(set12c_simple, aes(lifestages, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "lifestages", y = "", x = "")# +
-# scale_x_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000"))
-d8 <- ggplot(set12c_simple, aes(lifestyle, cluster, fill = cluster)) +
-        geom_col() +
-        labs(title = "lifestyle", y = "", x = "")# +
-# scale_x_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000"))
-jpeg('typeDemogPlots2_12_simple.jpeg', quality = 100, type = "cairo")
-grid.arrange(d5, d6, d7, d8, ncol=2, nrow = 2)
-dev.off()
-
-
-
-
-
-
-
-
-
-
-
-
 
 # consider multidimensional scaling and self organising maps on the clusters :
 
 # 1st create a subset to ensure easier running
 set.seed(56)
-sub12 <- set12[sample(nrow(set12), size = 1000),]
+sub12 <- set12c[sample(nrow(set12c), size = 1000),]
 
 # distance matrix and MDS
 sub12_dist <- dist(sub12[,c("newspapers","magazines","radio", "tv", "internet", "all")])
@@ -192,9 +168,9 @@ dev.off()
 # create training and test sets:
 
 set.seed(56)
-ind_train <- createDataPartition(set12$cluster, p = 0.7, list = FALSE)
-training <- set12[ind_train,]
-testing <- set12[-ind_train,]
+ind_train <- createDataPartition(set12c$cluster, p = 0.7, list = FALSE)
+training <- set12c[ind_train,]
+testing <- set12c[-ind_train,]
 
 # # using random forest:
 forest12_type <- randomForest(cluster ~ newspapers
@@ -227,12 +203,7 @@ forest12_demogr <- randomForest(cluster ~ age
                                 + edu
                                 + hh_inc
                                 + race
-                                + lang
-                                + lifestages
-                                + mar_status
-                                + lsm
-                                + lifestyle
-                                + attitudes,
+                                + lsm,
                                 data = training)
 
 pred_forest12_demogr <- predict(forest12_demogr, newdata = testing)
@@ -246,12 +217,7 @@ lda12_demogr <- lda(cluster ~ age
                     + edu
                     + hh_inc
                     + race
-                    + lang
-                    + lifestages
-                    + mar_status
-                    + lsm
-                    + lifestyle
-                    + attitudes,
+                    + lsm,
                     data = training)
 
 pred_lda12_demogr <- predict(lda12_demogr, newdata = testing)
@@ -261,8 +227,8 @@ confusionMatrix(pred_lda12_demogr$class, testing$cluster)
 
 # consider a single tree partitioning to try to add meaning to the four clusters
 control <- rpart.control(maxdepth = 3, cp = 0.001)
-tree12 <- rpart(cluster ~ newspapers + tv + radio + magazines + internet + all, 
-                data = set12,
+tree12 <- rpart(cluster ~ newspapers + tv + radio + magazines + internet, 
+                data = set12c,
                 control = control) # weights = pwgt
 par(mfrow = c(1,1))
 plot(tree12, uniform = TRUE, margin = 0.2)
@@ -271,8 +237,6 @@ text(tree12, pretty = 0, cex = 0.8)
 # for more detail
 rpart.plot(tree12, type = 4, extra = 1, cex = 0.5)
 
-percentile <- ecdf(set12$internet)
-percentile(1.4)
 
 
 

@@ -1,112 +1,54 @@
 # libraries
-library(stringr)
-library(tidyverse)
-library(corrplot)
-library(rpart)
-library(rpart.plot)
-library(scatterplot3d)
-library(rgl)
-library(kohonen)
-library(caret)
-library(randomForest)
-library(MASS)
-library(CCA)
 library(nFactors)
+library(psych)
 library(FactoMineR)
-library(factoextra)
-library(gridExtra)
-library(ggplot2)
 
 # load datafiles 
 set12_min <- readRDS("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/amps_nationals/set12_min.rds")
+set12_min2 <- readRDS("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/amps_nationals/set12_min2.rds") # Daily Sun also
 
 # LEVEL 2
 
-# # get rid of near zero variances:
-# ind_ct <- nearZeroVar(set12_CT[,21:ncol(set12_CT)], saveMetrics = TRUE)
-# ind_jhb <- nearZeroVar(set12_JHB[,21:ncol(set12_JHB)], saveMetrics = TRUE)
-# 
-# good_ct <- set12_CT[,21:ncol(set12_CT)][,!ind_ct$zeroVar]
-# good_jhb <- set12_JHB[,21:ncol(set12_JHB)][,!ind_jhb$nzv]
-# 
-# catSet12_CT <- data.frame(cbind(set12_CT[,1:20], good_ct))
-# catSet12_JHB <- data.frame(cbind(set12_JHB[,1:20], good_jhb))
-# 
-# saveRDS(catSet12_CT, "catSet12_CT.rds")
-# saveRDS(catSet12_JHB, "catSet12_JHB.rds")
-# 
-# nuSet12_CT <- data.frame(cbind(set12_CT[,1:20], good_ct))
-# nuSet12_JHB <- data.frame(cbind(set12_JHB[,1:20], good_jhb))
-
-#setting the ordered variables as scaled numerical:
-set12_min$age <- scale(as.numeric(set12_min$age))
-set12_min$edu <- scale(as.numeric(set12_min$edu))
-set12_min$hh_inc <- scale(as.numeric(set12_min$hh_inc))
-set12_min$lsm <- scale(as.numeric(set12_min$lsm))
-
-# naming the factors
-
-# National
-# nuSet12_CT$cluster <- factor(nuSet12_CT$cluster,
-#                              levels = c(1,2,3,4),
-#                              labels = c("cluster1", "cluster2", "cluster3", "cluster4"))
-set12_min$sex <- factor(set12_min$sex,
-                        levels = c(1,2),
-                        labels = c("male", "female"))
-set12_min$race <- factor(set12_min$race,
-                         levels = c(1,2,3,4),
-                         labels = c("black", "coloured", "indian", "white"))
-set12_min$lifestages <- factor(set12_min$lifestages,
-                               levels = c(1,2,3,4,5,6,7,8),
-                               labels = c("at home singles", "young independent singles", "mature singles", "young couples", "mature couples", "young family", "single parent family", "mature family"))
-set12_min$mar_status <- factor(set12_min$mar_status,
-                               levels = c(1,2,3,4,5),
-                               labels = c("single", "married or living together", "widowed", "divorced", "separated"))
-set12_min$lifestyle <- factor(set12_min$lifestyle,
-                              levels = c(1,2,3,4,5,6,7,8,9,10,11,12),
-                              labels = c("none", "cell sophisticates", "sports", "gamers", "outdoors", "good living", "avid readers", "traditionalists","cell fundamentals", "homebodies", "studious", "showgoers"))
-set12_min$attitudes <- factor(set12_min$attitudes,
-                              levels = c(1,2,3,4,5,6,7),
-                              labels = c("none", "now generation", "nation builders", "distants survivors", "distants established", "rooted", "global citizens"))
-
 # focussing only on the variable I intend to use in this section:
 set12_min <- set12_min[,-c(1:2,8:12,14:21)]
+set12_min2 <- set12_min2[,-c(1:2,8:12,14:21)]
 
-## Determine Number of Factors to Extract
-ev <- eigen(cor(set12_min[,7:ncol(set12_min)]))
-ap <- parallel(subject=nrow(set12_min[,7:ncol(set12_min)]),var=ncol(set12_min[,7:ncol(set12_min)]),
-               rep=100,cent=.10)
-nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
-jpeg("nScree_12_min")
-plotnScree(nS, main = "National") # optimal = 7
-dev.off()
-
-# will set them at six for now
-npc <- 6
-
-# creating objects with supplementary variables (qualitative and quantitative) and active one defined:
-set.seed(56)
-pca_12_min <- PCA(set12_min,
-                  quanti.sup = c(1,3,4,6),
-                  quali.sup = c(2,5),
-                  ncp = npc,
-                  graph = FALSE)
-
-saveRDS(pca_12_min, "pca_12_min.rds")
+# ## Determine Number of Factors to Extract
+# ev <- eigen(cor(set12_min[,7:ncol(set12_min)]))
+# ap <- parallel(subject=nrow(set12_min[,7:ncol(set12_min)]),var=ncol(set12_min[,7:ncol(set12_min)]),
+#                rep=100,cent=.10)
+# nS <- nScree(x=ev$values, aparallel=ap$eigen$qevpea)
+# jpeg("nScree_12_min")
+# plotnScree(nS, main = "National") # optimal = 7
+# dev.off()
+# 
+# # will set them at six for now
+# npc <- 6
+# 
+# # creating objects with supplementary variables (qualitative and quantitative) and active one defined:
+# set.seed(56)
+# pca_12_min <- PCA(set12_min,
+#                   quanti.sup = c(1,3,4,6),
+#                   quali.sup = c(2,5),
+#                   ncp = npc,
+#                   graph = FALSE)
+# 
+# saveRDS(pca_12_min, "pca_12_min.rds")
 
 # try pa method of factor analysis with oblimin rotation allowed....to try and get better estimation
-library(psych)
 set.seed(123)
 fact_12 <- fa(set12_min[7:ncol(set12_min)], nfactors = 6, fm = "pa") # default rotation oblimin, so does allow correlation between factors
 fact_12_loadings <- fact_12$loadings
 fact_12_scores <- fact_12$scores
 
-# scores with _08 as factor model
-fact_08 <- readRDS("/Users/HansPeter/Dropbox/Statistics/UCTDataScience/Thesis/amps_2008/fact_08.rds")
-fact_12_scores_model_08 <- predict(fact_08, data = set12_min[,7:ncol(set12_min)])
+# save model
+saveRDS(fact_12, "fact_12.rds")
 
-# save for use in longitudinal stuff:
-saveRDS(fact_12_scores_model_08, "fact_12_scores_model_08.rds")
+# save loadings:
+saveRDS(fact_12_loadings, "fact_12_loadings.rds")
+
+# save scores:
+saveRDS(fact_12_scores, "fact_12_scores.rds")
 
 
 
