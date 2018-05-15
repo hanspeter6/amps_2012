@@ -1,19 +1,13 @@
 # # loading packages
-# library(stringr)
 library(tidyverse)
 library(corrplot)
 library(rpart)
 library(rpart.plot)
 # library(scatterplot3d)
 # library(rgl)
-# library(kohonen)
 library(caret)
 library(randomForest)
 library(MASS)
-# library(CCA)
-# library(nFactors)
-# library(FactoMineR)
-# library(factoextra)
 library(gridExtra)
 library(ggplot2)
 
@@ -67,33 +61,21 @@ set12c <- readRDS("set12c.rds")
 
 ## some plots for simple version to use in longitudinal stuff later...
 # boxplots of clusters and media types
-p1 <- ggplot(set12c, aes(cluster, all, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "all")
-p2 <- ggplot(set12c, aes(cluster, newspapers, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "newspapers")
-p3 <- ggplot(set12c, aes(cluster, magazines, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "magazines")
-p4 <- ggplot(set12c, aes(cluster, radio, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "radio")
-p5 <- ggplot(set12c, aes(cluster, tv, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "tv")
-p6 <- ggplot(set12c, aes(cluster, internet, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "internet")
+boxplot <- function(set,type) {
+        ggplot(set, aes_string("cluster", type, fill = "cluster")) +
+                geom_boxplot() +
+                guides(fill = FALSE) +
+                labs(title = type)
+}
 
 jpeg('typeBoxPlots_12.jpeg', quality = 100, type = "cairo")
-grid.arrange(p1, p2, p3, p4, p5, p6,  ncol=3, nrow = 2)
+grid.arrange(boxplot(set12c, type = "all"),
+             boxplot(set12c, type = "newspapers"),
+             boxplot(set12c, type = "magazines"),
+             boxplot(set12c, type = "radio"),
+             boxplot(set12c, type = "tv"),
+             boxplot(set12c, type = "internet"),
+             ncol=3, nrow = 2)
 dev.off()
 
 # try to make sense of demographics
@@ -104,39 +86,49 @@ ggplot(data = set12c, aes(x = cluster, fill = cluster)) +
         guides(fill = FALSE)
 
 # demographics by cluster
-d1 <- ggplot(data = set12c, aes(x = cluster, fill = race)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("black", "coloured", "indian", "white")) +
-        labs(title = "Population Group 2012")
-
-d2 <- ggplot(data = set12c, aes(x = cluster, fill = edu)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("<matric", "matric",">matric")) +
-        labs(title = "Education Level 2012")
-
-d3 <- ggplot(data = set12c, aes(x = cluster, fill = age)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("15-24","25-44", "45-54","55+")) +
-        labs(title = "Age Group 2012")
-
-d4 <- ggplot(data = set12c, aes(x = cluster, fill = lsm)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("1-2", "3-4", "5-6", "7-8", "9-10")) +
-        labs(title = "LSM 2012")
-
-d5 <- ggplot(data = set12c, aes(x = cluster, fill = sex)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("male", "female")) +
-        labs(title = "Gender 2012")
-
-d6 <- ggplot(data = set12c, aes(x = cluster, fill = hh_inc)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000")) +
-        labs(title = "Household Income 2012")
+bars_by_cluster <- function(set, category) { # category:one of race, edu, age, lsm, sex, hh_inc
+        if(category == "race") {
+                level = c("black", "coloured", "indian", "white")
+                title = "Population Group 2012"
+        }
+        if(category == "edu") {
+                level = c(c("<matric", "matric",">matric"))
+                title = "Education Level 2012"
+        }
+        if(category == "age") {
+                level = c(c("15-24","25-44", "45-54","55+"))
+                title = "Age Group 2012"
+        }
+        if(category == "lsm") {
+                level = c("1-2", "3-4", "5-6", "7-8", "9-10")
+                title = "LSM 2012"
+        }
+        if(category == "sex") {
+                level = c("male", "female")
+                title = "Gender 2012"
+        }
+        if(category == "hh_inc") {
+                level = c("<5000","5000-10999","11000-19999",">=20000")
+                title = "Household Income 2012"
+        }
+        
+        ggplot(data = set, aes_string(x = "cluster", fill = category)) +
+                geom_bar(stat = "count", position = position_dodge()) +
+                scale_fill_discrete(labels=level) +
+                labs(title = title) +
+                guides(fill=guide_legend(title=NULL)) 
+}
 
 jpeg('typeDemogPlots_12.jpeg', quality = 100, type = "cairo")
-grid.arrange(d1, d2, d3, d4, d5, d6, ncol=2, nrow = 3)
+grid.arrange(bars_by_cluster(set12c, "sex"),
+             bars_by_cluster(set12c, "age"),
+             bars_by_cluster(set12c, "race"),
+             bars_by_cluster(set12c, "edu"),
+             bars_by_cluster(set12c, "hh_inc"),
+             bars_by_cluster(set12c, "lsm"),
+             ncol=2, nrow = 3)
 dev.off()
+
 
 # consider multidimensional scaling and self organising maps on the clusters :
 

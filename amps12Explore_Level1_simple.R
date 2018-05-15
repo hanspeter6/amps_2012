@@ -1,19 +1,13 @@
 # # loading packages
-# library(stringr)
 library(tidyverse)
 library(corrplot)
 library(rpart)
 library(rpart.plot)
 # library(scatterplot3d)
 # library(rgl)
-# library(kohonen)
 library(caret)
 library(randomForest)
 library(MASS)
-# library(CCA)
-# library(nFactors)
-# library(FactoMineR)
-# library(factoextra)
 library(gridExtra)
 library(ggplot2)
 
@@ -54,6 +48,18 @@ kmeans12_simple <- kmeans(set12_simple[,c("newspapers","magazines","radio", "tv"
                           iter.max = 100)
 table(kmeans12_simple$cluster)
 
+# align with interpretation of 2012 basic (ie, not simple)....
+# green to green:  2 to 2
+# lilac to red: 4 to 1
+# blue to blue: 3 to 3
+# red to lilac: 1 to 4
+kmeans12_simple$cluster <- ifelse(kmeans12_simple$cluster == 1, 9, kmeans12_simple$cluster)
+kmeans12_simple$cluster <- ifelse(kmeans12_simple$cluster == 2, 7, kmeans12_simple$cluster)
+kmeans12_simple$cluster <- ifelse(kmeans12_simple$cluster == 3, 8, kmeans12_simple$cluster)
+kmeans12_simple$cluster <- ifelse(kmeans12_simple$cluster == 4, 6, kmeans12_simple$cluster)
+kmeans12_simple$cluster <- kmeans12_simple$cluster - 5
+
+
 # add cluster labels to the dataset
 set12c_simple <- set12_simple %>%
         mutate(cluster = factor(kmeans12_simple$cluster)) %>%
@@ -66,34 +72,23 @@ set12c_simple <- readRDS("set12c_simple.rds")
 
 ## some plots for simple version to use in longitudinal stuff later...
 # boxplots of clusters and media types
-p1_simple <- ggplot(set12c_simple, aes(cluster, all, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "all")
-p2_simple <- ggplot(set12c_simple, aes(cluster, newspapers, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "newspapers")
-p3_simple <- ggplot(set12c_simple, aes(cluster, magazines, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "magazines")
-p4_simple <- ggplot(set12c_simple, aes(cluster, radio, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "radio")
-p5_simple <- ggplot(set12c_simple, aes(cluster, tv, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "tv")
-p6_simple <- ggplot(set12c_simple, aes(cluster, internet, fill = cluster)) +
-        geom_boxplot() +
-        guides(fill = FALSE) +
-        labs(title = "internet")
+boxplot <- function(set,type) {
+        ggplot(set, aes_string("cluster", type, fill = "cluster")) +
+                geom_boxplot() +
+                guides(fill = FALSE) +
+                labs(title = type)
+}
 
 jpeg('typeBoxPlots_12_simple.jpeg', quality = 100, type = "cairo")
-grid.arrange(p1_simple, p2_simple, p3_simple, p4_simple, p5_simple, p6_simple,  ncol=3, nrow = 2)
+grid.arrange(boxplot(set12c_simple, type = "all"),
+             boxplot(set12c_simple, type = "newspapers"),
+             boxplot(set12c_simple, type = "magazines"),
+             boxplot(set12c_simple, type = "radio"),
+             boxplot(set12c_simple, type = "tv"),
+             boxplot(set12c_simple, type = "internet"),
+             ncol=3, nrow = 2)
 dev.off()
+
 
 # try to make sense of demographics
 
@@ -103,38 +98,47 @@ ggplot(data = set12c_simple, aes(x = cluster, fill = cluster)) +
         guides(fill = FALSE)
 
 # demographics by cluster
-d1_simple <- ggplot(data = set12c_simple, aes(x = cluster, fill = race)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("black", "coloured", "indian", "white")) +
-        labs(title = "Population Group 2012")
-
-d2_simple <- ggplot(data = set12c_simple, aes(x = cluster, fill = edu)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("<matric", "matric",">matric")) +
-        labs(title = "Education Level 2012")
-
-d3_simple <- ggplot(data = set12c_simple, aes(x = cluster, fill = age)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("15-24","25-44", "45-54","55+")) +
-        labs(title = "Age Group 2012")
-
-d4_simple <- ggplot(data = set12c_simple, aes(x = cluster, fill = lsm)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("1-2", "3-4", "5-6", "7-8", "9-10")) +
-        labs(title = "LSM 2012")
-
-d5_simple <- ggplot(data = set12c_simple, aes(x = cluster, fill = sex)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("male", "female")) +
-        labs(title = "Gender 2012")
-
-d6_simple <- ggplot(data = set12c_simple, aes(x = cluster, fill = hh_inc)) +
-        geom_bar(stat = "count", position = position_dodge()) +
-        scale_fill_discrete(labels=c("<5000","5000-10999","11000-19999",">=20000")) +
-        labs(title = "Household Income 2012")
+bars_by_cluster <- function(set, category) { # category:one of race, edu, age, lsm, sex, hh_inc
+        if(category == "race") {
+                level = c("black", "coloured", "indian", "white")
+                title = "Population Group 2012"
+        }
+        if(category == "edu") {
+                level = c(c("<matric", "matric",">matric"))
+                title = "Education Level 2012"
+        }
+        if(category == "age") {
+                level = c(c("15-24","25-44", "45-54","55+"))
+                title = "Age Group 2012"
+        }
+        if(category == "lsm") {
+                level = c("1-2", "3-4", "5-6", "7-8", "9-10")
+                title = "LSM 2012"
+        }
+        if(category == "sex") {
+                level = c("male", "female")
+                title = "Gender 2012"
+        }
+        if(category == "hh_inc") {
+                level = c("<5000","5000-10999","11000-19999",">=20000")
+                title = "Household Income 2012"
+        }
+        
+        ggplot(data = set, aes_string(x = "cluster", fill = category)) +
+                geom_bar(stat = "count", position = position_dodge()) +
+                scale_fill_discrete(labels=level) +
+                labs(title = title) +
+                guides(fill=guide_legend(title=NULL)) 
+}
 
 jpeg('typeDemogPlots_12_simple.jpeg', quality = 100, type = "cairo")
-grid.arrange(d1, d2, d3, d4, d5, d6, ncol=2, nrow = 3)
+grid.arrange(bars_by_cluster(set12c_simple, "sex"),
+             bars_by_cluster(set12c_simple, "age"),
+             bars_by_cluster(set12c_simple, "race"),
+             bars_by_cluster(set12c_simple, "edu"),
+             bars_by_cluster(set12c_simple, "hh_inc"),
+             bars_by_cluster(set12c_simple, "lsm"),
+             ncol=2, nrow = 3)
 dev.off()
 
 
